@@ -8,6 +8,7 @@ import new_err
 model_c='da2014'
 basedir='/Users/christophermanser/Storage/PhD_files/DESI/WDFitting'
 c = 299792.458 # Speed of light in km/s
+plot = True
 
 # Loads the input spectrum as sys.argv[1], first input
 spec1,spec2,spec3=np.loadtxt(sys.argv[1],usecols=(0,1,2),unpack=True)
@@ -20,7 +21,7 @@ spectra=np.dstack((spec1,spec2,spec3))[0]
 #load lines to fit
 line_crop = np.loadtxt(basedir+'/line_crop.dat')
 #fit entire grid to find good starting point
-best=fitting_scripts.fit_line(spectra, model_in=None,  quick=True,  model=model_c)
+best=fitting_scripts.fit_line(spectra,model_in=None,quick=True,model=model_c)
 first_T, first_g = best[2][0], best[2][1]
 all_chi, all_TL  = best[4], best[3]
 
@@ -48,7 +49,7 @@ lines_s,lines_m,spectra,model_n=new_err.fit_func_test((best_T,best_g,best_rv),sp
 #repeat fit for secondary solution
 second_best=optimize.fmin(new_err.fit_func_test,(other_sol[0][0],other_sol[0][1],best_rv),args=(spectra,line_crop,model_c,0),disp=0,xtol=1.,ftol=1.,full_output=1)
 other_T2=optimize.fmin(new_err.err_t,(other_sol[0][0],other_sol[0][1]),args=(best_rv,second_best[1],spectra,line_crop,model_c),disp=0,xtol=1.,ftol=1.,full_output=0)
-s_best_T, s_best_g, s_best_rv =second_best[0][0], second_best[0][1], second_best[0][2]
+s_best_T, s_best_g, s_best_rv = second_best[0][0], second_best[0][1], second_best[0][2]
 print("\nSecond solution")
 print("T = ", s_best_T, abs(s_best_T-other_T2[0]))
 print("logg = ", s_best_g/100, abs(s_best_g-other_T2[1])/100)
@@ -56,33 +57,34 @@ print("logg = ", s_best_g/100, abs(s_best_g-other_T2[1])/100)
 lines_s_o,lines_m_o,spectra,model_n_o=new_err.fit_func_test((s_best_T,s_best_g,s_best_rv),spectra,line_crop,models=model_c,mode=1)
 
 #=======================plotting===============================================
-fig=plt.figure(figsize=(8,5))
-ax1 = plt.subplot2grid((1,4), (0, 3))
-step = 0
-for i in range(1,6): # plots Halpha (i=0) to H6 (i=5)
-  min_p   = lines_s[i][:,0][lines_s[i][:,1]==np.min(lines_s[i][:,1])][0]
-  min_p_o = lines_s_o[i][:,0][lines_s_o[i][:,1]==np.min(lines_s_o[i][:,1])][0]
-  ax1.plot(lines_s[i][:,0]-min_p,lines_s[i][:,1]+step,color='k')
-  ax1.plot(lines_s[i][:,0]-min_p,lines_m[i]+step,color='r')
-  ax1.plot(lines_s_o[i][:,0]-min_p_o,lines_m_o[i]+step,color='g')
-  step+=0.5
-xticks = ax1.xaxis.get_major_ticks()
-ax1.set_xticklabels([])
-ax1.set_yticklabels([])
+if plot == True:
+    fig=plt.figure(figsize=(8,5))
+    ax1 = plt.subplot2grid((1,4), (0, 3))
+    step = 0
+    for i in range(1,6): # plots Halpha (i=0) to H6 (i=5)
+        min_p   = lines_s[i][:,0][lines_s[i][:,1]==np.min(lines_s[i][:,1])][0]
+        min_p_o = lines_s_o[i][:,0][lines_s_o[i][:,1]==np.min(lines_s_o[i][:,1])][0]
+        ax1.plot(lines_s[i][:,0]-min_p,lines_s[i][:,1]+step,color='k')
+        ax1.plot(lines_s[i][:,0]-min_p,lines_m[i]+step,color='r')
+        ax1.plot(lines_s_o[i][:,0]-min_p_o,lines_m_o[i]+step,color='g')
+        step+=0.5
+    xticks = ax1.xaxis.get_major_ticks()
+    ax1.set_xticklabels([])
+    ax1.set_yticklabels([])
 
-ax2 = plt.subplot2grid((1,4), (0, 0),colspan=3)
-ax2.plot(spectra[:,0],spectra[:,1],color='k')
-# Adjust the flux of models to match the spectrum
-model_n[np.isnan(model_n)], model_n_o[np.isnan(model_n_o)] = 0.0, 0.0
-check_f_spec=spectra[:,1][np.logical_and(spectra[:,0]>4500., spectra[:,0]<4700.)]
+    ax2 = plt.subplot2grid((1,4), (0, 0),colspan=3)
+    ax2.plot(spectra[:,0],spectra[:,1],color='k')
+    # Adjust the flux of models to match the spectrum
+    model_n[np.isnan(model_n)], model_n_o[np.isnan(model_n_o)] = 0.0, 0.0
+    check_f_spec=spectra[:,1][np.logical_and(spectra[:,0]>4500., spectra[:,0]<4700.)]
+    check_f_model=model_n[:,1][np.logical_and(model_n[:,0]>4500., model_n[:,0]<4700.)]
+    adjust=np.average(check_f_model)/np.average(check_f_spec)
+    ax2.plot(model_n[:,0]*(best_rv+c)/c,model_n[:,1]/adjust,color='r')
+    check_f_model_o=model_n_o[:,1][np.logical_and(model_n_o[:,0]>4500., model_n_o[:,0]<4700.)]
+    adjust_o=np.average(check_f_model_o)/np.average(check_f_spec)
+    ax2.plot(model_n_o[:,0]*(best_rv+c)/c,model_n_o[:,1]/adjust_o,color='g')
 
-check_f_model=model_n[:,1][np.logical_and(model_n[:,0]>4500., model_n[:,0]<4700.)]
-adjust=np.average(check_f_model)/np.average(check_f_spec)
-ax2.plot(model_n[:,0]*(best_rv+c)/c,model_n[:,1]/adjust,color='r')
-check_f_model_o=model_n_o[:,1][np.logical_and(model_n_o[:,0]>4500., model_n_o[:,0]<4700.)]
-adjust_o=np.average(check_f_model_o)/np.average(check_f_spec)
-ax2.plot(model_n_o[:,0]*(best_rv+c)/c,model_n_o[:,1]/adjust_o,color='g')
-
-ax2.set_ylabel(r'F$_{\lambda}$ [erg cm$^{-2}$ s$^{-1} \AA^{-1}$]',fontsize=12)#labelpad=24
-ax2.set_xlabel(r'Wavelength $(\AA)$',fontsize=12)
-plt.show()
+    ax2.set_ylabel(r'F$_{\lambda}$ [erg cm$^{-2}$ s$^{-1} \AA^{-1}$]',fontsize=12)#labelpad=24
+    ax2.set_xlabel(r'Wavelength $(\AA)$',fontsize=12)
+    plt.show()
+    plt.close()

@@ -7,11 +7,10 @@ def air_to_vac(wavin):
     """Converts spectra from air wavelength to vacuum to compare to models"""
     return wavin/(1.0 + 2.735182e-4 + 131.4182/wavin**2 + 2.76249e8/wavin**4)
 
+
 def _band_limits(band):
-    """
-    give magnitude band e.g. "sdss_r"
-    return outer limits
-    for use in models etc
+    """ give magnitude band e.g. "sdss_r"
+    return outer limits for use in models etc
     """
     mag = np.loadtxt(basedir+'/sm/'+band+'.dat')
     mag = mag[mag[:,1]>0.05]
@@ -40,7 +39,6 @@ def models_normalised(quick=True, model='sdss', testing=False):
         model_param = np.loadtxt(basedir+fn, usecols=[1,2], comments='WDFitting/')
         m_spec = np.load(basedir+d+model_list[0])
         m_wave = m_spec[:,0]
-        #
         out_m_wave = m_wave[(m_wave>=3400)&(m_wave<=13000)]
         norm_m_flux = np.load(basedir+'/norm_m_flux.'+model+'.npy')
         #
@@ -91,12 +89,9 @@ def models_normalised(quick=True, model='sdss', testing=False):
             out_m_wave = m_wave[(m_wave>=3400)&(m_wave<=13000)]
         else:
             raise wdfitError('Normalised models cropped to too small a region')
-        #
         cont_m_flux = np.empty([len(m_flux),len(out_m_wave)])
         for i in range(len(m_flux)):
             #not suitable for higher order fitting
-            #tck = interpolate.splrep(m_wave_nr[i],m_flux_nr[i], t=[4100,4340,4900,6460], k=3)
-            #print cont_f[i]
             tck = interpolate.splrep(cont_l[i],cont_f[i], t=[3885,4340,4900,6460], k=3)
             cont_m_flux[i] = interpolate.splev(out_m_wave,tck)
         #Normalised flux
@@ -107,29 +102,22 @@ def models_normalised(quick=True, model='sdss', testing=False):
         if testing:
             import pylab as pl
             def p():
-                pl.figure(figsize=(7,9))
+                plt.figure(figsize=(7,9))
                 ax1 = pl.subplot(211)
-                pl.axvline([3885], color='g', zorder=1)
-                pl.axvline([4340], color='g', zorder=1)
-                pl.axvline([4900], color='g', zorder=1)
-                pl.axvline([6460], color='g', zorder=1)
-                pl.plot(m_wave,m_flux[i], color='grey', lw=0.8, zorder=2)
-                pl.plot(out_m_wave,cont_m_flux[i], 'b-', zorder=3)
-                pl.scatter(cont_l[i], cont_f[i], edgecolors='r', facecolors='none', zorder=20)
-                ax2 = pl.subplot(212, sharex=ax1)
-                pl.axhline([1], color='g')
-                pl.plot(out_m_wave, norm_m_flux[i], 'b-')
-                pl.ylim([0,2])
-                pl.xlim([3400,13000])
-                pl.show()
+                llst = [3885, 4340, 4900, 6460]
+                for num in llst: plt.axvline(num, color='g',zorder=1)
+                plt.plot(m_wave,m_flux[i], color='grey', lw=0.8, zorder=2)
+                plt.plot(out_m_wave,cont_m_flux[i], 'b-', zorder=3)
+                plt.scatter(cont_l[i], cont_f[i], edgecolors='r', facecolors='none', zorder=20)
+                ax2 = plt.subplot(212, sharex=ax1)
+                plt.axhline([1], color='g')
+                plt.plot(out_m_wave, norm_m_flux[i], 'b-')
+                plt.ylim([0,2])
+                plt.xlim([3400,13000])
+                plt.show()
                 return
-            #
-            for i in np.where(model_param[:,1]==8.0)[0][::8]:
-                p()
-        #
-    #
+            for i in np.where(model_param[:,1]==8.0)[0][::8]: p()
     return [out_m_wave,norm_m_flux,model_list,model_param]
-
 
 
 def norm_spectra(spectra, add_infinity=True, testing=False):
@@ -244,31 +232,26 @@ def norm_spectra(spectra, add_infinity=True, testing=False):
     #
     #testing
     if testing:
-        import pylab as pl
+        import pylab as plt
         from jg import spectra as s
         def p():
-            pl.figure(figsize=(7,9))
-            ax1 = pl.subplot(211)
+            plt.figure(figsize=(7,9))
+            ax1 = plt.subplot(211)
             for bla in range(np.size(linee)):
-                pl.axvline(linee[bla], color='g', zorder=1)
-            #pl.axvline([4340], color='g', zorder=1)
-            #pl.axvline([4900], color='g', zorder=1)
-            #pl.axvline([6460], color='g', zorder=1)
+                plt.axvline(linee[bla], color='g', zorder=1)
             bs =  s.bin_spc(spectra)
-            pl.plot(bs[:,0], bs[:,1], color='grey', lw=0.8, zorder=2)
-            pl.plot(spectra[:,0], cont_flux, 'b-', zorder=3)
-            pl.scatter(s_nr[:,0], s_nr[:,1], edgecolors='r', facecolors='none', zorder=20)
-            pl.ylim([0, np.max([spectra[:,1].max(), cont_flux.max(), s_nr[:,1].max()])*1.2])
-            ax2 = pl.subplot(212, sharex=ax1)
-            pl.axhline([1], color='g')
-            pl.plot(spectra_ret[:,0], spectra_ret[:,1], color='grey', lw=0.8)
-            pl.ylim([0,2])
-            pl.xlim([3400,13000])
-            pl.show()
+            plt.plot(bs[:,0], bs[:,1], color='grey', lw=0.8, zorder=2)
+            plt.plot(spectra[:,0], cont_flux, 'b-', zorder=3)
+            plt.scatter(s_nr[:,0], s_nr[:,1], edgecolors='r', facecolors='none', zorder=20)
+            plt.ylim([0, np.max([spectra[:,1].max(), cont_flux.max(), s_nr[:,1].max()])*1.2])
+            ax2 = plt.subplot(212, sharex=ax1)
+            plt.axhline([1], color='g')
+            plt.plot(spectra_ret[:,0], spectra_ret[:,1], color='grey', lw=0.8)
+            plt.ylim([0,2])
+            plt.xlim([3400,13000])
+            plt.show()
             return
-        #
         p()
-    #
     return spectra_ret, cont_flux
 
 
@@ -490,6 +473,7 @@ def corr3d(temperature,gravity,ml2a=0.8,graph=False):
         return np.round(teff_3dcorr,0),np.round(logg_3dcorr,2)
     elif ml2a==0.8: print("to be implemented")
     elif ml2a==0.7: print("to be implemented")
+
 
 def fit_line(spectra, model_in=None, quick=True, line_lmax=None, line_lmin=None, model='sdss', diagnostic=False):
     """
