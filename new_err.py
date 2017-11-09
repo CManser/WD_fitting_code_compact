@@ -11,8 +11,8 @@ def tmp_func(_T, _g, _rv, _sn, _l, _m):
         return 1
     else:
         #interpolate normalised model and spectra onto same wavelength scale
-        m_wave_n, sn_w =norm_model[:,0]*(_rv+c)/c, _sn[:,0]
-        m_flux_n_i = interpolate.interp1d(m_wave_n,norm_model[:,1],kind='linear')(sn_w)
+        m_wave_n, m_flux_n, sn_w =norm_model[:,0]*(_rv+c)/c, norm_model[:,1], _sn[:,0]
+        m_flux_n_i = interpolate.interp1d(m_wave_n,m_flux_n,kind='linear')(sn_w)
         #Initialise: normalised models and spectra in line region, and chi2
         tmp_lines_m, lines_s, sum_l_chi2 = [], [], 0
         for i in range(len(_l)):
