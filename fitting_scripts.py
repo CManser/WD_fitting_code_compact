@@ -16,7 +16,7 @@ def _band_limits(band):
     return [mag[:,0].min(),mag[:,0].max()]
 
 
-def models_normalised(quick=True, model='sdss', testing=False):
+def models_normalised(quick=True, model='da2014', testing=False):
     """ Import Normalised WD Models
     No Arguements
     Optional:
@@ -27,10 +27,8 @@ def models_normalised(quick=True, model='sdss', testing=False):
     """
     if quick: # Use preloaded tables
         model_list = ['da2014','pier','pier3D','pier3D_smooth','pier_rad','pier1D','pier_smooth','pier_rad_smooth','pier_rad_fullres','pier_fullres']
-        if model not in model_list:
-            raise wdfitError('Unknown "model" in models_normalised')
-        fn = '/wdfit.'+model+'.lst'
-        d = '/WDModels_Koester.'+model+'_npy/'
+        if model not in model_list: raise wdfitError('Unknown "model" in models_normalised')
+        fn, d = '/wdfit.'+model+'.lst', '/WDModels_Koester.'+model+'_npy/'
         model_list = np.loadtxt(basedir+fn, usecols=[0], dtype=np.string_, comments='WDFitting/').astype(str)
         model_param = np.loadtxt(basedir+fn, usecols=[1,2], comments='WDFitting/')
         m_spec = np.load(basedir+d+model_list[0])
@@ -251,33 +249,27 @@ def norm_spectra(spectra, add_infinity=True, testing=False):
     return spectra_ret, cont_flux
 
 
-def models(quick=True, quiet=True, band='sdss_r', model='sdss'):
+def models(quick=True, quiet=True, band='sdss_r', model='da2014'):
     """Import WD Models
     Optional:
         quick=True   : Use presaved model array. Check is up to date
         quiet=True   : verbose
         band='sdss_r': which mag band to calculate normalisation over (MEAN, not folded)
-        model='sdss': Which model grid to use: 'sdss' (DA, fine, noIR), 'new' (DA, course, IR, new), 'old' (DA, course, IR, old), 'interp' (DA, fine++, noIR), 'db' (DB models)
+        model: Which model grid to use
     Return [model_list,model_param,orig_model_wave,orig_model_flux,tck_model,r_model]
     """
     from scipy import interpolate
-    model_list = ['sdss','new','old','fine++','db','da2014','pier','pier3D','pier3D_smooth','pier_rad','pier1D','pier_smooth','pier_rad_smooth','pier_rad_fullres','pier_fullres']
-    if model not in model_list:
-        raise wdfitError('Unknown "model" in models')
-    else:
-        fn = '/wdfit.'+model+'.lst'
-        d = '/WDModels_Koester.'+model+'/'
-    #
+    model_list = ['da2014','pier','pier3D','pier3D_smooth','pier_rad','pier1D','pier_smooth','pier_rad_smooth','pier_rad_fullres','pier_fullres']
+    if model not in model_list: raise wdfitError('Unknown "model" in models')
+    else: fn, d = '/wdfit.'+model+'.lst', '/WDModels_Koester.'+model+'/'
     #Load in table of all models
     model_list = np.loadtxt(basedir+fn, usecols=[0], dtype='string', comments='WDFitting/')
     model_param = np.loadtxt(basedir+fn, usecols=[1,2], comments='WDFitting/')
     orig_model_wave = np.loadtxt(basedir+d+model_list[0], usecols=[0])
     #
-    if not quiet:
-        print('Loading Models')
+    if not quiet: print('Loading Models')
     if quick:
         orig_model_flux = np.load(basedir+'/orig_model_flux.'+model+'.npy')
-        #
         if orig_model_wave.shape[0] != orig_model_flux.shape[1]:
             raise wdfitError('l and f arrays not correct shape in models')
     else:
@@ -293,7 +285,6 @@ def models(quick=True, quiet=True, band='sdss_r', model='sdss'):
             from jg import spectra as _s
             for i in range(len(model_list)):
                 if not quiet: print(i)
-                #
                 tmp = _s.spectra(fn = basedir+d+model_list[i], usecols=[0,1])
                 #Not uniform wavelength grid argh!
                 tmp.interpolate(orig_model_wave, kind='linear', save_res=True)
@@ -314,10 +305,8 @@ def models(quick=True, quiet=True, band='sdss_r', model='sdss'):
 
 # Models interpolation #
 # for speed the models need to be saved specifically as numpy arrays
-def interpolating_model_DA(temp,grav,mod_type='pier',band='none',mag=0,radius=0,distance=10,Av=0):
-    """Interpolate model atmospheres given an input Teff and logg.
-    If band=='V': normalizes the model at lambda = 5500A
-    If Av!=0: the Fitzpatrick 1999 law is used"""
+def interpolating_model_DA(temp,grav,mod_type='pier'):
+    """Interpolate model atmospheres given an input Teff and logg"""
     # PARAMETERS # 
     dir_models = basedir + '/WDModels_Koester.'+mod_type+'_npy/'
     if mod_type=="pier" or mod_type=="pier_fullres":
@@ -354,15 +343,9 @@ def interpolating_model_DA(temp,grav,mod_type='pier',band='none',mag=0,radius=0,
                        55000.,60000.,65000.,70000.,75000.,80000.,90000.,100000.])
         logg=np.array([4.00,4.25,4.50,4.75,5.00,5.25,5.50,5.75,6.00,6.25,6.50,6.75,7.00,
                        7.25,7.50,7.75,8.00,8.25,8.50,8.75,9.00,9.25,9.50])
-    if mod_type=='pier3D':
-        if temp<6000. or temp>90000. or grav<6.5 or grav>9.:
-            return 0
-    elif mod_type=='pier_rad' or mod_type=='pier_smooth':
-        if temp<6000. or temp>15000. or grav<7.0 or grav>9.:
-            return 0
-    elif mod_type=='da2014':
-        if temp<6000. or temp>100000. or grav<4.0 or grav>9.5:
-            return 0
+    if (mod_type=='pier3D') & (temp<6000. or temp>90000. or grav<6.5 or grav>9.): return 0
+    elif (mod_type=='pier_rad' or mod_type=='pier_smooth') & (temp<6000. or temp>15000. or grav<7.0 or grav>9.): return 0
+    elif (mod_type=='da2014') & (temp<6000. or temp>100000. or grav<4.0 or grav>9.5): return 0
 	
     # INTERPOLATION #
     g1,g2 = np.max(logg[logg<=grav]),np.min(logg[logg>=grav])
@@ -373,14 +356,14 @@ def interpolating_model_DA(temp,grav,mod_type='pier',band='none',mag=0,radius=0,
         for i in [g1,g2]:
             if mod_type =='da2014': models.append('da'+str(j)+'_'+str(int(i*100))+'_2.7.npy')
             else: models.append('WD_%.2f_'%(i)+str(j)+'.0.npy')
-    model = []
-    if len(models[0])!=0: m11, model = np.load(dir_models+models[0]), np.zeros((len(m11),2))
+    tmp = 0
+    if len(models[0])!=0: m11, tmp = np.load(dir_models+models[0]), 1
     else: m11 = 0
-    if len(models[1])!=0: m12, model = np.load(dir_models+models[1]), np.zeros((len(m11),2))
+    if len(models[1])!=0: m12, tmp = np.load(dir_models+models[1]), 1
     else: m12 = 0	
-    if len(models[2])!=0: m21, model = np.load(dir_models+models[2]), np.zeros((len(m11),2))
+    if len(models[2])!=0: m21, tmp = np.load(dir_models+models[2]), 1
     else: m21 = 0	
-    if len(models[3])!=0: m22, model = np.load(dir_models+models[3]), np.zeros((len(m11),2))
+    if len(models[3])!=0: m22, tmp = np.load(dir_models+models[3]), 1
     else: m22 = 0	
     if t1!=t2: t = (temp-float(t1))/(float(t2)-float(t1))          
     else: t=0
@@ -388,12 +371,10 @@ def interpolating_model_DA(temp,grav,mod_type='pier',band='none',mag=0,radius=0,
     if g1!=g2: g = (grav-g1)/(g2-g1)
     else: g=0
     if np.isnan(g)==True: g=0	
-    if len(model)!=0:
+    if tmp==1:
         flux_i = (1-t)*(1-g)*m11[:,1]+t*(1-g)*m21[:,1]+t*g*m22[:,1]+(1-t)*g*m12[:,1]
-        wav_i = m11[:,0]
-        model[:,0],model[:,1]=wav_i,flux_i
+        return np.dstack((m11[:,0], flux_i))[0]
     else: return 0
-    return model
 
 
 def corr3d(temperature,gravity,ml2a=0.8,testing=False):
