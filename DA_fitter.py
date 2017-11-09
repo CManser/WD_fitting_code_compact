@@ -9,7 +9,6 @@ model_c='da2014'
 basedir='/Users/christophermanser/Storage/PhD_files/DESI/WDFitting'
 c = 299792.458 # Speed of light in km/s
 plot = True
-
 # Loads the input spectrum as sys.argv[1], first input
 spec1,spec2,spec3=np.loadtxt(sys.argv[1],usecols=(0,1,2),unpack=True)
 spec1=spec1[np.isnan(spec2)==False]
