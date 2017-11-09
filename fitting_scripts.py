@@ -407,7 +407,7 @@ def interpolating_model_DA(temperature,gravity,mod_type='pier',band='none',mag=0
     return model
 
 
-def corr3d(temperature,gravity,ml2a=0.8,graph=False):
+def corr3d(temperature,gravity,ml2a=0.8,testing=False):
     """ Determines the 3D correction (Tremblay et al. 2013, 559, A104)
 	  from their atmospheric parameters
     Optional, measure in parsecs
@@ -447,7 +447,7 @@ def corr3d(temperature,gravity,ml2a=0.8,graph=False):
         m22 = logg_corr[logical_and(teff==t2,logg==g2)]['logg_corr'][0]
         logg_3dcorr = (1-t)*(1-g)*m11+t*(1-g)*m21+t*g*m22+(1-t)*g*m12
 		
-        if graph==True:	
+        if testing:	
             plt.fig = figure(figsize=(7,2.5))
             plt.fig.subplots_adjust(left=0.10,bottom=0.15,right=0.98,top=0.98,wspace=0.35)
             ax1 = fig.add_subplot(121)

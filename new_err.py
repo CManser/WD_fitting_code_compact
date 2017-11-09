@@ -26,9 +26,8 @@ def tmp_func(_T, _g, _rv, _s, _l, _m):
             if (l_c1 < sn_w.max()) & (l_c0 > sn_w.min()):
                 l_m = m_flux_n_i.transpose()[(sn_w>=l_c0)&(sn_w<=l_c1)].transpose()
                 l_s = spec_n[(sn_w>=l_c0)&(sn_w<=l_c1)]
-                #renormalise models to spectra in line region
+                #renormalise models to spectra in line region & calculate chi2+sum
                 l_m = l_m*np.sum(l_s[:,1])/np.sum(l_m)
-                #calculate chi2 and add to sum
                 sum_l_chi2 += np.sum(((l_s[:,1]-l_m)/l_s[:,2])**2)
                 tmp_lines_m.append(l_m)
                 lines_s.append(l_s)
@@ -47,8 +46,7 @@ def fit_func_test(x,spec,linee,models='da2014',mode=0):
 
 def err_t(x,rv,valore,spec,linee,models='da2014'):
     """Script finds errors by minimising function at chi+1 rather than chi
-       Requires: x - initial guess of T, g
-       rv - rv value from best fit
+       Requires: x; rv - initial guess of T, g; rv
        valore - the chi value of the best fit
        spec - spectrum to fit
        linee - list of lines to fit """
