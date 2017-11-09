@@ -42,9 +42,7 @@ def err_t(x,rv,valore,specn,lcrop,models='da2014'):
     """Script finds errors by minimising function at chi+1 rather than chi
        Requires: x; rv - initial guess of T, g; rv
        valore - the chi value of the best fit
-       spec - normalised spectrum to fit
-       lcrop - list of cropped lines to fit """
+       spec/lcrop - normalised spectrum / list of cropped lines to fit"""
     tmp = tmp_func(x[0], x[1], rv, specn, lcrop, models)
     if tmp != 1: return abs(tmp[3]-(valore+1.)) #this is quantity that gets minimized 
     else: pass
-    
