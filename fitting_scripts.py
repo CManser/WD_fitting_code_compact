@@ -356,13 +356,13 @@ def interpolating_model_DA(temperature,gravity,mod_type='pier',band='none',mag=0
                        7.25,7.50,7.75,8.00,8.25,8.50,8.75,9.00,9.25,9.50])
     if mod_type=='pier3D':
         if temperature<6000. or temperature>90000. or gravity<6.5 or gravity>9.:
-            return [],[]
+            return 0
     elif mod_type=='pier_rad' or mod_type=='pier_smooth':
         if temperature<6000. or temperature>15000. or gravity<7.0 or gravity>9.:
-            return [],[]
+            return 0
     elif mod_type=='da2014':
         if temperature<6000. or temperature>100000. or gravity<4.0 or gravity>9.5:
-            return [],[]
+            return 0
 	
     # INTERPOLATION #
     g1,g2 = np.max(logg[logg<=gravity]),np.min(logg[logg>=gravity])
@@ -403,7 +403,7 @@ def interpolating_model_DA(temperature,gravity,mod_type='pier',band='none',mag=0
         flux_i = (1-t)*(1-g)*m11[:,1]+t*(1-g)*m21[:,1]+t*g*m22[:,1]+(1-t)*g*m12[:,1]
         wav_i = m11[:,0]
         model[:,0],model[:,1]=wav_i,flux_i
-    else: return [], []
+    else: return 0
     return model
 
 
