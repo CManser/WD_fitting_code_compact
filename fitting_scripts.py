@@ -1,6 +1,6 @@
-import numpy as _np
+import numpy as np
 import os
-from pylab import *
+import matplotlib.pyplot as plt
 basedir='/Users/christophermanser/Storage/PhD_files/DESI/WDFitting'
 
 def air_to_vac(wavin):
@@ -13,7 +13,7 @@ def _band_limits(band):
     return outer limits
     for use in models etc
     """
-    mag = _np.loadtxt(basedir+'/sm/'+band+'.dat')
+    mag = np.loadtxt(basedir+'/sm/'+band+'.dat')
     mag = mag[mag[:,1]>0.05]
     return [mag[:,0].min(),mag[:,0].max()]
 
@@ -30,19 +30,19 @@ def models_normalised(quick=True, model='sdss', testing=False):
     """
     #Use preloaded tables
     if quick:
-        #
-        if (model!='sdss') & (model!='new') & (model!='old') & (model!='fine++')& (model!='da2014')& (model!='pier')& (model!='pier3D')& (model!='pier3D_smooth') & (model!='pier_rad')& (model!='pier1D')& (model!='pier_smooth')& (model!='pier_rad_smooth')& (model!='pier_rad_fullres')& (model!='pier_fullres'):
+        model_list = ['sdss','new','old','fine++','db','da2014','pier','pier3D','pier3D_smooth','pier_rad','pier1D','pier_smooth','pier_rad_smooth','pier_rad_fullres','pier_fullres']
+        if model not in model_list:
             raise wdfitError('Unknown "model" in models_normalised')
         
         fn = '/wdfit.'+model+'.lst'
         d = '/WDModels_Koester.'+model+'_npy/'
-        model_list = _np.loadtxt(basedir+fn, usecols=[0], dtype=np.string_, comments='WDFitting/').astype(str)
-        model_param = _np.loadtxt(basedir+fn, usecols=[1,2], comments='WDFitting/')
-        m_spec = _np.load(basedir+d+model_list[0])
+        model_list = np.loadtxt(basedir+fn, usecols=[0], dtype=np.string_, comments='WDFitting/').astype(str)
+        model_param = np.loadtxt(basedir+fn, usecols=[1,2], comments='WDFitting/')
+        m_spec = np.load(basedir+d+model_list[0])
         m_wave = m_spec[:,0]
         #
         out_m_wave = m_wave[(m_wave>=3400)&(m_wave<=13000)]
-        norm_m_flux = _np.load(basedir+'/norm_m_flux.'+model+'.npy')
+        norm_m_flux = np.load(basedir+'/norm_m_flux.'+model+'.npy')
         #
         if out_m_wave.shape[0] != norm_m_flux.shape[1]:
             raise wdfitError('l and f arrays not correct shape in models_normalised')
@@ -52,11 +52,11 @@ def models_normalised(quick=True, model='sdss', testing=False):
         #Load models from models()
         model_list,model_param,m_wave,m_flux,tck_model,r_model = models(quick=quick, model=model)
         #Range over which DA is purely continuum
-        norm_range = _np.loadtxt(basedir+'/wide_norm_range.dat', usecols=[0,1])
-        norm_range_s = _np.loadtxt(basedir+'/wide_norm_range.dat', usecols=[2], dtype='string')
+        norm_range = np.loadtxt(basedir+'/wide_norm_range.dat', usecols=[0,1])
+        norm_range_s = np.loadtxt(basedir+'/wide_norm_range.dat', usecols=[2], dtype='string')
         #for each line, for each model, hold l and f of continuum
-        cont_l = _np.empty([len(m_flux), len(norm_range)])
-        cont_f = _np.empty([len(m_flux), len(norm_range)])
+        cont_l = np.empty([len(m_flux), len(norm_range)])
+        cont_f = np.empty([len(m_flux), len(norm_range)])
         #for each zone
         
         for j in range(len(norm_range)):
@@ -71,7 +71,7 @@ def models_normalised(quick=True, model='sdss', testing=False):
                 
                 tck = interpolate.interp1d(_l,_f,kind='cubic')
                 #interpolate onto 10* resolution
-                l = _np.linspace(_l.min(),_l.max(),(len(_l)-1)*10+1)
+                l = np.linspace(_l.min(),_l.max(),(len(_l)-1)*10+1)
                 f = tck(l)
                 #print f
                 #find maxima and save
@@ -82,8 +82,8 @@ def models_normalised(quick=True, model='sdss', testing=False):
                 #find mean and save
                 elif norm_range_s[j]=='M':
                     for k in range(len(f)):
-                        cont_l[k,j] = _np.mean(l)
-                        cont_f[k,j] = _np.mean(f[k])
+                        cont_l[k,j] = np.mean(l)
+                        cont_f[k,j] = np.mean(f[k])
                 else:
                     print('Unknown norm_range_s, ignoring')
         #Continuum
@@ -92,7 +92,7 @@ def models_normalised(quick=True, model='sdss', testing=False):
         else:
             raise wdfitError('Normalised models cropped to too small a region')
         #
-        cont_m_flux = _np.empty([len(m_flux),len(out_m_wave)])
+        cont_m_flux = np.empty([len(m_flux),len(out_m_wave)])
         for i in range(len(m_flux)):
             #not suitable for higher order fitting
             #tck = interpolate.splrep(m_wave_nr[i],m_flux_nr[i], t=[4100,4340,4900,6460], k=3)
@@ -101,7 +101,7 @@ def models_normalised(quick=True, model='sdss', testing=False):
             cont_m_flux[i] = interpolate.splev(out_m_wave,tck)
         #Normalised flux
         norm_m_flux = m_flux.transpose()[(m_wave>=3400)&(m_wave<=13000)].transpose()/cont_m_flux
-        _np.save(basedir+'/norm_m_flux.'+model+'.npy', norm_m_flux)
+        np.save(basedir+'/norm_m_flux.'+model+'.npy', norm_m_flux)
         #
         #testing
         if testing:
@@ -124,7 +124,7 @@ def models_normalised(quick=True, model='sdss', testing=False):
                 pl.show()
                 return
             #
-            for i in _np.where(model_param[:,1]==8.0)[0][::8]:
+            for i in np.where(model_param[:,1]==8.0)[0][::8]:
                 p()
         #
     #
@@ -145,19 +145,19 @@ def norm_spectra(spectra, add_infinity=True, testing=False):
     """
     from scipy import interpolate
     #Range over which DA is purely continuum
-    #norm_range = _np.loadtxt(basedir+'/WDFitting/wide_norm_range.dat', usecols=[0,1])
-    #norm_range_s = _np.loadtxt(basedir+'/WDFitting/wide_norm_range.dat', usecols=[2], dtype='string')
-    start_n=_np.array([3770.,3796.,3835.,3895.,3995.,4130.,4490.,4620.,5070.,5200.,6000.,7000.,7550.,8400.])
-    end_n=_np.array([3795.,3830.,3885.,3960.,4075.,4290.,4570.,4670.,5100.,5300.,6100.,7050.,7600.,8450.])
+    #norm_range = np.loadtxt(basedir+'/WDFitting/wide_norm_range.dat', usecols=[0,1])
+    #norm_range_s = np.loadtxt(basedir+'/WDFitting/wide_norm_range.dat', usecols=[2], dtype='string')
+    start_n=np.array([3770.,3796.,3835.,3895.,3995.,4130.,4490.,4620.,5070.,5200.,6000.,7000.,7550.,8400.])
+    end_n=np.array([3795.,3830.,3885.,3960.,4075.,4290.,4570.,4670.,5100.,5300.,6100.,7050.,7600.,8450.])
     #norm_range=np.stack((start_n, end_n), axis=-1)
     norm_range=np.dstack((start_n, end_n))[0]
-    norm_range_s=_np.array(['P','P','P','P','P','P','M','M','M','M','M','M','M','M'])
+    norm_range_s=np.array(['P','P','P','P','P','P','M','M','M','M','M','M','M','M'])
       #
     if len(spectra[0,:])>2:
-        s_nr = _np.zeros([len(norm_range),3])
+        s_nr = np.zeros([len(norm_range),3])
         spectra[:,2][spectra[:,2]==0.] = spectra[:,2].max()
     else:
-        s_nr = _np.zeros([len(norm_range),2])
+        s_nr = np.zeros([len(norm_range),2])
     #for each zone
     for j in range(len(norm_range)):
         if (norm_range[j,0] < spectra[:,0].max()) & (norm_range[j,1] > spectra[:,0].min()):
@@ -168,11 +168,11 @@ def norm_spectra(spectra, add_infinity=True, testing=False):
             k=3
             if len(_s)>k:
                 #interpolate onto 10* resolution
-                l = _np.linspace(_s[:,0].min(),_s[:,0].max(),(len(_s)-1)*10+1)
+                l = np.linspace(_s[:,0].min(),_s[:,0].max(),(len(_s)-1)*10+1)
                 if len(spectra[0,:])>2:
                     tck = interpolate.splrep(_s[:,0],_s[:,1],w=1/_s[:,2], s=1000)
                     #median errors for max/mid point
-                    s_nr[j,2] = _np.median(_s[:,2]) / _np.sqrt(len(_s[:,0]))
+                    s_nr[j,2] = np.median(_s[:,2]) / np.sqrt(len(_s[:,0]))
                 else:
                     tck = interpolate.splrep(_s[:,0],_s[:,1],s=0.0)
                 #
@@ -183,7 +183,7 @@ def norm_spectra(spectra, add_infinity=True, testing=False):
                     s_nr[j,1] = f.max()
                 #find mean and save
                 elif norm_range_s[j]=='M':
-                    s_nr[j,0:2] = _np.mean(l), _np.mean(f)
+                    s_nr[j,0:2] = np.mean(l), np.mean(f)
                 else:
                     print('Unknown norm_range_s, ignoring')
     #
@@ -200,7 +200,7 @@ def norm_spectra(spectra, add_infinity=True, testing=False):
         #print 'Warning: knots used for spline normalisation may be bad'
         #knots = [3885,4340,4900,int(s_nr[:,0].max()-5)]
         knots = [3000,4900,4100,4340,4860,int(s_nr[:,0].max()-5)]
-        linee=_np.array(knots)
+        linee=np.array(knots)
 
     #knots = [4100,4340,4900,int(s_nr[:,0].max()-5)]
     else:
@@ -217,11 +217,11 @@ def norm_spectra(spectra, add_infinity=True, testing=False):
     ##add a point at infinity, 0 for spline to fit too. error = mean of other errors.
     if add_infinity:
         if s_nr.shape[1] > 2:
-            s_nr = _np.vstack([ s_nr, _np.array([90000.,0., _np.mean(s_nr[:,2]) ]) ])
-            s_nr = _np.vstack([ s_nr, _np.array([100000.,0., _np.mean(s_nr[:,2]) ]) ])
+            s_nr = np.vstack([ s_nr, np.array([90000.,0., np.mean(s_nr[:,2]) ]) ])
+            s_nr = np.vstack([ s_nr, np.array([100000.,0., np.mean(s_nr[:,2]) ]) ])
         else:
-            s_nr = _np.vstack([ s_nr, _np.array([90000.,0.]) ])
-            s_nr = _np.vstack([ s_nr, _np.array([100000.,0.]) ])
+            s_nr = np.vstack([ s_nr, np.array([90000.,0.]) ])
+            s_nr = np.vstack([ s_nr, np.array([100000.,0.]) ])
     #
     #weight by errors
     try:
@@ -239,7 +239,7 @@ def norm_spectra(spectra, add_infinity=True, testing=False):
     #
     cont_flux = interpolate.splev(spectra[:,0],tck)
     cont_flux = cont_flux.reshape([len(cont_flux),1])
-    spectra_ret = _np.copy(spectra)
+    spectra_ret = np.copy(spectra)
     spectra_ret[:,1:] = spectra_ret[:,1:]/cont_flux
     #
     #testing
@@ -249,7 +249,7 @@ def norm_spectra(spectra, add_infinity=True, testing=False):
         def p():
             pl.figure(figsize=(7,9))
             ax1 = pl.subplot(211)
-            for bla in range(_np.size(linee)):
+            for bla in range(np.size(linee)):
                 pl.axvline(linee[bla], color='g', zorder=1)
             #pl.axvline([4340], color='g', zorder=1)
             #pl.axvline([4900], color='g', zorder=1)
@@ -258,7 +258,7 @@ def norm_spectra(spectra, add_infinity=True, testing=False):
             pl.plot(bs[:,0], bs[:,1], color='grey', lw=0.8, zorder=2)
             pl.plot(spectra[:,0], cont_flux, 'b-', zorder=3)
             pl.scatter(s_nr[:,0], s_nr[:,1], edgecolors='r', facecolors='none', zorder=20)
-            pl.ylim([0, _np.max([spectra[:,1].max(), cont_flux.max(), s_nr[:,1].max()])*1.2])
+            pl.ylim([0, np.max([spectra[:,1].max(), cont_flux.max(), s_nr[:,1].max()])*1.2])
             ax2 = pl.subplot(212, sharex=ax1)
             pl.axhline([1], color='g')
             pl.plot(spectra_ret[:,0], spectra_ret[:,1], color='grey', lw=0.8)
@@ -282,53 +282,51 @@ def models(quick=True, quiet=True, band='sdss_r', model='sdss'):
     Return [model_list,model_param,orig_model_wave,orig_model_flux,tck_model,r_model]
     """
     from scipy import interpolate
-
-    if (model!='sdss') & (model!='new') & (model!='old') & (model!='fine++') & (model!='db') & (model!='da2014')& (model!='pier')& (model!='pier3D')& (model!='pier3D_smooth')&(model!='pier_rad') & (model!='pier1D')& (model!='pier_smooth')& (model!='pier_rad_smooth')& (model!='pier_rad_fullres')& (model!='pier_fullres'):
+    model_list = ['sdss','new','old','fine++','db','da2014','pier','pier3D','pier3D_smooth','pier_rad','pier1D','pier_smooth','pier_rad_smooth','pier_rad_fullres','pier_fullres']
+    if model not in model_list:
         raise wdfitError('Unknown "model" in models')
     else:
         fn = '/wdfit.'+model+'.lst'
         d = '/WDModels_Koester.'+model+'/'
     #
     #Load in table of all models
-    model_list = _np.loadtxt(basedir+fn, usecols=[0], dtype='string', comments='WDFitting/')
-    model_param = _np.loadtxt(basedir+fn, usecols=[1,2], comments='WDFitting/')
-    orig_model_wave = _np.loadtxt(basedir+d+model_list[0], usecols=[0])
+    model_list = np.loadtxt(basedir+fn, usecols=[0], dtype='string', comments='WDFitting/')
+    model_param = np.loadtxt(basedir+fn, usecols=[1,2], comments='WDFitting/')
+    orig_model_wave = np.loadtxt(basedir+d+model_list[0], usecols=[0])
     #
     if not quiet:
         print('Loading Models')
     if quick:
-        orig_model_flux = _np.load(basedir+'/orig_model_flux.'+model+'.npy')
+        orig_model_flux = np.load(basedir+'/orig_model_flux.'+model+'.npy')
         #
         if orig_model_wave.shape[0] != orig_model_flux.shape[1]:
             raise wdfitError('l and f arrays not correct shape in models')
     else:
-        orig_model_flux = _np.empty([len(model_list),len(orig_model_wave)])
+        orig_model_flux = np.empty([len(model_list),len(orig_model_wave)])
         if not(model=='db'):
             for i in range(len(model_list)):
-                if not quiet:
-                    print(i)
+                if not quiet: print(i)
                 print(basedir+d+model_list[i])
-                orig_model_flux[i] = _np.loadtxt(basedir+d+model_list[i],usecols=[1])
+                orig_model_flux[i] = np.loadtxt(basedir+d+model_list[i],usecols=[1])
             #
-            _np.save(basedir+'/orig_model_flux.'+model+'.npy',orig_model_flux)
+            np.save(basedir+'/orig_model_flux.'+model+'.npy',orig_model_flux)
         else:
             from jg import spectra as _s
             for i in range(len(model_list)):
-                if not quiet:
-                    print(i)
+                if not quiet: print(i)
                 #
                 tmp = _s.spectra(fn = basedir+d+model_list[i], usecols=[0,1])
                 #Not uniform wavelength grid argh!
                 tmp.interpolate(orig_model_wave, kind='linear', save_res=True)
                 orig_model_flux[i] = tmp.f()
         #
-        _np.save(basedir+'/orig_model_flux.'+model+'.npy',orig_model_flux)
+        np.save(basedir+'/orig_model_flux.'+model+'.npy',orig_model_flux)
     #Interpolate Model onto Spectra points
     #Linear
     tck_model = interpolate.interp1d(orig_model_wave,orig_model_flux,kind='linear')
     #Only calculate r model once
     band_limits = _band_limits(band)
-    r_model = _np.mean(orig_model_flux.transpose()[((orig_model_wave>=band_limits[0])&(orig_model_wave<=band_limits[1]))].transpose(),axis=1)
+    r_model = np.mean(orig_model_flux.transpose()[((orig_model_wave>=band_limits[0])&(orig_model_wave<=band_limits[1]))].transpose(),axis=1)
     #
     print(orig_model_wave)
     print(orig_model_flux)
@@ -388,52 +386,40 @@ def interpolating_model_DA(temperature,gravity,mod_type='pier',band='none',mag=0
             return [],[]
 	
     # INTERPOLATION #
-    g1,g2 = _np.max(logg[logg<=gravity]),_np.min(logg[logg>=gravity])
+    g1,g2 = np.max(logg[logg<=gravity]),np.min(logg[logg>=gravity])
     if mod_type=='da2014':
         t1,t2 = str(int(max(teff[teff<=temperature]))).zfill(6),str(int(min(teff[teff>=temperature]))).zfill(6)
     else:
         t1,t2 = (int(max(teff[teff<=temperature]))),(int(min(teff[teff>=temperature])))
-        #else:
-        #   t1,t2 = t1.zfill(6),t2.zfill(6)
     models = []
-	
     for j in [t1,t2]:
         for i in [g1,g2]:
-            #print 'WD_%.2f_%d.0.dat' % (i,j)
-            if mod_type =='da2014':
-                i=int(i*100)
-                #models.append([x for x in lista_models if x == 'da%s_%s_2.7.npy' % (j,str(int(i*100)))])
-                mod_name='da'+str(j)+'_'+str(i)+'_2.7.npy'
-                models.append(mod_name)
-            else:
-                i=('%.2f' % i)
-                mod_name='WD_'+str(i)+'_'+str(j)+'.0.npy'
-                models.append(mod_name)
-
+            if mod_type =='da2014': models.append('da'+str(j)+'_'+str(int(i*100))+'_2.7.npy')
+            else: models.append('WD_%.2f_'%(i)+str(j)+'.0.npy')
     model = []
     if len(models[0])!=0:
-        m11=_np.load(dir_models+models[0])
-        model = _np.zeros((len(m11),2))
+        m11=np.load(dir_models+models[0])
+        model = np.zeros((len(m11),2))
     else: m11 = 0
     if len(models[1])!=0:    
-        m12=_np.load(dir_models+models[1])
-        model = _np.zeros((len(m11),2))
+        m12=np.load(dir_models+models[1])
+        model = np.zeros((len(m11),2))
     else: m12 = 0	
     if len(models[2])!=0:   
-        m21=_np.load(dir_models+models[2])
-        model = _np.zeros((len(m11),2))
+        m21=np.load(dir_models+models[2])
+        model = np.zeros((len(m11),2))
     else: m21 = 0	
     if len(models[3])!=0:    
-        m22=_np.load(dir_models+models[3])
-        model = _np.zeros((len(m11),2))
+        m22=np.load(dir_models+models[3])
+        model = np.zeros((len(m11),2))
     else: m22 = 0	
 	
     if t1!=t2: t = (temperature-float(t1))/(float(t2)-float(t1))          
     else: t=0
-    if _np.isnan(t)==True: t=0	
+    if np.isnan(t)==True: t=0	
     if g1!=g2: g = (gravity-g1)/(g2-g1)
     else: g=0
-    if _np.isnan(g)==True: g=0	
+    if np.isnan(g)==True: g=0	
     if len(model)!=0:
         flux_i = (1-t)*(1-g)*m11[:,1]+t*(1-g)*m21[:,1]+t*g*m22[:,1]+(1-t)*g*m12[:,1]
         wav_i = m11[:,0]
@@ -456,26 +442,20 @@ def corr3d(temperature,gravity,ml2a=0.8,graph=False):
         print("NEED TO CHANGE PATH AND GET DATA.")
         teff_corr = csv2rec('/storage/astro2/phsmav/data2/models/3dcorr/ml2a_08/teff_corr.csv')
         logg_corr = csv2rec('/storage/astro2/phsmav/data2/models/3dcorr/ml2a_08/logg_corr.csv')
-        teff = teff_corr['teff']
-        logg = teff_corr['logg']
-		
+        teff, logg = teff_corr['teff'], teff_corr['logg']
         # indentifying ranges Teff_corr#
-        t1,t2 = _np.max(teff[teff<=temperature]),_np.min(teff[teff>=temperature])
-        g1,g2 = _np.max(logg[logg<=gravity]),_np.min(logg[logg>=gravity])
+        t1,t2 = np.max(teff[teff<=temperature]),np.min(teff[teff>=temperature])
+        g1,g2 = np.max(logg[logg<=gravity]),np.min(logg[logg>=gravity])
         if t1!=t2:
             t1,t2 = float(t1), float(t2)
             t = (temperature-t1)/(t2-t1)
-        else:
-            t=0.
-        if _np.isnan(t)==True:
-            t=0.
+        else: t=0.
+        if np.isnan(t)==True: t=0.
         if g1!=g2:
             g1,g2 = float(g1), float(g2)
             g = (gravity-g1)/(g2-g1)
-        else:
-            g=0
-        if _np.isnan(g)==True:
-            g=0		
+        else: g=0
+        if np.isnan(g)==True: g=0		
         m11 = teff_corr[logical_and(teff==t1,logg==g1)]['teff_corr'][0]
         m12 = teff_corr[logical_and(teff==t1,logg==g2)]['teff_corr'][0]
         m21 = teff_corr[logical_and(teff==t2,logg==g1)]['teff_corr'][0]
@@ -489,35 +469,27 @@ def corr3d(temperature,gravity,ml2a=0.8,graph=False):
         logg_3dcorr = (1-t)*(1-g)*m11+t*(1-g)*m21+t*g*m22+(1-t)*g*m12
 		
         if graph==True:	
-            fig = figure(figsize=(7,2.5))
-            fig.subplots_adjust(left=0.10,bottom=0.15,right=0.98,top=0.98,wspace=0.35)
+            plt.fig = figure(figsize=(7,2.5))
+            plt.fig.subplots_adjust(left=0.10,bottom=0.15,right=0.98,top=0.98,wspace=0.35)
             ax1 = fig.add_subplot(121)
-            plot(teff[where(logg==7.0)],teff_corr['teff_corr'][where(logg==7.0)],'b-',label='logg = 7.0',lw=0.5)
-            plot(teff[where(logg==7.5)],teff_corr['teff_corr'][where(logg==7.5)],'r-',label='logg = 7.5',lw=0.5)
-            plot(teff[where(logg==8.0)],teff_corr['teff_corr'][where(logg==8.0)],'g-',label='logg = 8.0',lw=0.5)
-            plot(teff[where(logg==8.5)],teff_corr['teff_corr'][where(logg==8.5)],'c-',label='logg = 8.5',lw=0.5)
-            plot(teff[where(logg==9.0)],teff_corr['teff_corr'][where(logg==9.0)],'m-',label='logg = 9.0',lw=0.5)
-            legend(numpoints=1,ncol=1,loc=3, fontsize=7)
-            plot(temperature,teff_3dcorr,'ro',ms=2)
-            xlabel('Teff')
-            ylabel('Teff corr')
-            xlim([6000,14500])
             ax2 = fig.add_subplot(122)
-            plot(teff[where(logg==7.0)],logg_corr['logg_corr'][where(logg==7.0)],'b-',lw=0.5)
-            plot(teff[where(logg==7.5)],logg_corr['logg_corr'][where(logg==7.5)],'r-',lw=0.5)
-            plot(teff[where(logg==8.0)],logg_corr['logg_corr'][where(logg==8.0)],'g-',lw=0.5)
-            plot(teff[where(logg==8.5)],logg_corr['logg_corr'][where(logg==8.5)],'c-',lw=0.5)
-            plot(teff[where(logg==9.0)],logg_corr['logg_corr'][where(logg==9.0)],'m-',lw=0.5)
-            plot(temperature,logg_3dcorr,'ro',ms=2)
-            xlabel('Teff')
-            ylabel('logg corr')
-            xlim([6000,14500])
-            show()
-        return _np.round(teff_3dcorr,0),_np.round(logg_3dcorr,2)
-    elif ml2a==0.8:
-        print("to be implemented")
-    elif ml2a==0.7:
-        print("to be implemented")
+            tmp_g = [7.0, 7.5, 8.0, 8.5, 9.0]
+            tmp_s = ['b-', 'r-', 'g-', 'c-', 'm-']
+            axes = [ax1, ax2]
+            tmp_t = ['teff_corr', 'logg_corr']
+            for i in range(len(axes)):
+                for j in range(len(tmp_g)): axes[i].plot(teff[where(logg==tmp_g[j])],teff_corr[tmp_t[i]][where(logg==tmp_g[j])],tmp_s[j],label='logg = %.1f'%(tmp_g[j]),lw=0.5)
+                axes[i].legend(numpoints=1,ncol=1,loc=3, fontsize=7)
+                axes[i]._set_xlabel('Teff')
+                axes[i]._set_ylabel(tmp_t[i])
+                axes[i].set_xlim([6000,14500])    
+            ax1.plot(temperature,teff_3dcorr,'ro',ms=2)
+            ax2.plot(temperature,logg_3dcorr,'ro',ms=2)
+            plt.show()
+            plt.close()
+        return np.round(teff_3dcorr,0),np.round(logg_3dcorr,2)
+    elif ml2a==0.8: print("to be implemented")
+    elif ml2a==0.7: print("to be implemented")
 
 def fit_line(spectra, model_in=None, quick=True, line_lmax=None, line_lmin=None, model='sdss', diagnostic=False):
     """
@@ -543,72 +515,48 @@ def fit_line(spectra, model_in=None, quick=True, line_lmax=None, line_lmin=None,
     """
     from scipy import interpolate
     #min max of lines ha hb hg hd he
-    line_crop = _np.loadtxt(basedir+'/line_crop.dat')
-    if line_lmin:
-        line_crop = line_crop[_np.mean(line_crop,axis=1)>line_lmin]
-    if line_lmax:
-        line_crop = line_crop[_np.mean(line_crop,axis=1)<line_lmax]
+    line_crop = np.loadtxt(basedir+'/line_crop.dat')
+    if line_lmin: line_crop = line_crop[np.mean(line_crop,axis=1)>line_lmin]
+    if line_lmax: line_crop = line_crop[np.mean(line_crop,axis=1)<line_lmax]
     #
     #Check if lines are inside spectra l
     line_crop = line_crop[(line_crop[:,0]>spectra[:,0].min()) & (line_crop[:,1]<spectra[:,0].max())]
     #load normalised models
-    if model_in==None:
-        m_wave_n,m_flux_n,model_list,model_param = models_normalised(quick=quick, model=model)
-    else:
-        m_wave_n,m_flux_n,model_list,model_param = model_in
-    #
+    if model_in==None: m_wave_n,m_flux_n,model_list,model_param = models_normalised(quick=quick, model=model)
+    else: m_wave_n,m_flux_n,model_list,model_param = model_in
     #normalise spectra
     spectra_n, cont_flux = norm_spectra(spectra)
-    #
     cont_flux = cont_flux[(spectra_n[:,0] >= m_wave_n.min()) & (spectra_n[:,0] <= m_wave_n.max())]
     spectra_n = spectra_n[(spectra_n[:,0] >= m_wave_n.min()) & (spectra_n[:,0] <= m_wave_n.max())]
     #linearly interpolate models onto spectral wavelength grid
     tck_l_m = interpolate.interp1d(m_wave_n,m_flux_n,kind='linear')
     m_flux_n_i = tck_l_m(spectra_n[:,0])
-    #
     #Initialise: normalised models and spectra in line region, and chi2
-    tmp_lines_m = []
-    lines_s = []
-    l_chi2 = []
-    #for each line
+    tmp_lines_m, lines_s, l_chi2 = [], [],[]
     for c in range(len(line_crop)):
-        #crop model and spectra to line
+        #for each line crop model & spectra to line
         #only if line region is entirely covered by spectrum
         if (line_crop[c,1] < spectra[:,0].max()) & (line_crop[c,0] > spectra[:,0].min()):
             l_m = m_flux_n_i.transpose()[(spectra_n[:,0]>=line_crop[c,0])&(spectra_n[:,0]<=line_crop[c,1])].transpose()
             l_s = spectra_n[(spectra_n[:,0]>=line_crop[c,0])&(spectra_n[:,0]<=line_crop[c,1])]
             #renormalise models to spectra in line region
-            l_m = l_m*_np.sum(l_s[:,1])/_np.sum(l_m,axis=1).reshape([len(l_m),1])
-            
+            l_m = l_m*np.sum(l_s[:,1])/np.sum(l_m,axis=1).reshape([len(l_m),1])
             #calculate chi2
-            #l_chi2[:,c] = _np.sum(((l_s[:,1]-l_m)/chi2errs)**2,axis=1)/(len(l_s)-2)
-            if _np.isnan(_np.sum(((l_s[:,1]-l_m)/l_s[:,2])**2,axis=1)[0])==False:
-                
-                l_chi2.append( _np.sum(((l_s[:,1]-l_m)/l_s[:,2])**2,axis=1) )
-            #
+            if np.isnan(np.sum(((l_s[:,1]-l_m)/l_s[:,2])**2,axis=1)[0])==False:
+                l_chi2.append( np.sum(((l_s[:,1]-l_m)/l_s[:,2])**2,axis=1) )
                 tmp_lines_m.append(l_m)
                 lines_s.append(l_s)
     #mean chi2 over lines
-    l_chi2 = _np.array(l_chi2)
-    lines_chi2 = _np.sum(l_chi2,axis=0)
-    #print tmp_lines_m[c][lines_chi2==lines_chi2.min()]
+    lines_chi2 = np.sum(np.array(l_chi2),axis=0)
     #store best model lines for output
     lines_m = []
     for c in range(len(line_crop)):
         if (line_crop[c,1] < spectra[:,0].max()) & (line_crop[c,0] > spectra[:,0].min()):
             lines_m.append(tmp_lines_m[c][lines_chi2==lines_chi2.min()][0])
-    #
     #chi2 contour
-    model_shape = [len(_np.unique(model_param[:,0])),len(_np.unique(model_param[:,1]))]
-    #print _np.concatenate([model_param[:,0].reshape(model_shape), model_param[:,1].reshape(model_shape), lines_chi2.reshape(model_shape)])
-    #chi2_cont = _np.concatenate([model_param[:,0].reshape(model_shape), model_param[:,1].reshape(model_shape), lines_chi2.reshape(model_shape)], axis=2)
-    #
+    model_shape = [len(np.unique(model_param[:,0])),len(np.unique(model_param[:,1]))]
     best_TL = model_param[lines_chi2 == lines_chi2.min()][0]
+    other_TL = model_param[lines_chi2 == sorted(lines_chi2)[2]][0]
 
-    other=sorted(lines_chi2)[2]
-    other_TL = model_param[lines_chi2 == other][0]
-
-    if diagnostic:
-        return  lines_s, lines_m, spectra_n, cont_flux, model_param,lines_chi2#m_flux_n_i[lines_chi2==lines_chi2.min()][0]#chi2_cont,
-    else:
-        return  lines_s, lines_m,best_TL,model_param,lines_chi2,other_TL
+    if diagnostic: return  lines_s,lines_m,spectra_n,cont_flux,model_param,lines_chi2
+    else         : return  lines_s,lines_m,best_TL,model_param,lines_chi2,other_TL
