@@ -35,28 +35,29 @@ elif first_T > 13000.:
     other_chi=all_chi[all_TL[:,0]<13000.]
     other_sol= other_TL[other_chi==np.min(other_chi)]
 
-# Calculate a cropped line list for new_err
+# Calculate a cropped line list for new_err & normalises spectrum
 l_crop = line_crop[(line_crop[:,0]>spec1.min()) & (line_crop[:,1]<spec1.max())]
+spec_n, cont_flux = fitting_scripts.norm_spectra(spectra)
 # Find best fitting model and then calculate error
-new_best=optimize.fmin(new_err.fit_func_test,(first_T,first_g,10.),args=(spectra,l_crop,model_c,0),disp=0,xtol=1.,ftol=1.,full_output=1)
-other_T=optimize.fmin(new_err.err_t,(first_T,first_g),args=(new_best[0][2],new_best[1],spectra,l_crop,model_c),disp=0,xtol=1.,ftol=1.,full_output=0)
+new_best=optimize.fmin(new_err.fit_func_test,(first_T,first_g,10.),args=(spec_n,l_crop,model_c,0),disp=0,xtol=1.,ftol=1.,full_output=1)
+other_T=optimize.fmin(new_err.err_t,(first_T,first_g),args=(new_best[0][2],new_best[1],spec_n,l_crop,model_c),disp=0,xtol=1.,ftol=1.,full_output=0)
 best_T, best_g, best_rv = new_best[0][0], new_best[0][1], new_best[0][2]
 print("First solution")
 print("T = ", best_T, abs(best_T-other_T[0]))
 print("logg = ", best_g/100, abs(best_g-other_T[1])/100)
 print("rv=",best_rv)
 # get and save best model
-lines_s,lines_m,spectra,model_n=new_err.fit_func_test((best_T,best_g,best_rv),spectra,l_crop,models=model_c,mode=1)
+lines_s,lines_m,model_n=new_err.fit_func_test((best_T,best_g,best_rv),spec_n,l_crop,models=model_c,mode=1)
 
 #repeat fit for secondary solution
-second_best=optimize.fmin(new_err.fit_func_test,(other_sol[0][0],other_sol[0][1],best_rv),args=(spectra,l_crop,model_c,0),disp=0,xtol=1.,ftol=1.,full_output=1)
-other_T2=optimize.fmin(new_err.err_t,(other_sol[0][0],other_sol[0][1]),args=(best_rv,second_best[1],spectra,l_crop,model_c),disp=0,xtol=1.,ftol=1.,full_output=0)
+second_best=optimize.fmin(new_err.fit_func_test,(other_sol[0][0],other_sol[0][1],best_rv),args=(spec_n,l_crop,model_c,0),disp=0,xtol=1.,ftol=1.,full_output=1)
+other_T2=optimize.fmin(new_err.err_t,(other_sol[0][0],other_sol[0][1]),args=(best_rv,second_best[1],spec_n,l_crop,model_c),disp=0,xtol=1.,ftol=1.,full_output=0)
 s_best_T, s_best_g, s_best_rv = second_best[0][0], second_best[0][1], second_best[0][2]
 print("\nSecond solution")
 print("T = ", s_best_T, abs(s_best_T-other_T2[0]))
 print("logg = ", s_best_g/100, abs(s_best_g-other_T2[1])/100)
 # get and save best model
-lines_s_o,lines_m_o,spectra,model_n_o=new_err.fit_func_test((s_best_T,s_best_g,s_best_rv),spectra,l_crop,models=model_c,mode=1)
+lines_s_o,lines_m_o,model_n_o=new_err.fit_func_test((s_best_T,s_best_g,s_best_rv),spec_n,l_crop,models=model_c,mode=1)
 
 #=======================plotting===============================================
 if plot == True:

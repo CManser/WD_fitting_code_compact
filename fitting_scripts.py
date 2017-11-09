@@ -26,7 +26,7 @@ def models_normalised(quick=True, model='sdss', testing=False):
     Return [model_list,model_param,orig_model_wave,orig_model_flux,tck_model,r_model]
     """
     if quick: # Use preloaded tables
-        model_list = ['sdss','new','old','fine++','db','da2014','pier','pier3D','pier3D_smooth','pier_rad','pier1D','pier_smooth','pier_rad_smooth','pier_rad_fullres','pier_fullres']
+        model_list = ['da2014','pier','pier3D','pier3D_smooth','pier_rad','pier1D','pier_smooth','pier_rad_smooth','pier_rad_fullres','pier_fullres']
         if model not in model_list:
             raise wdfitError('Unknown "model" in models_normalised')
         fn = '/wdfit.'+model+'.lst'
