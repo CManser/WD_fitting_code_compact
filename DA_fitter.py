@@ -48,7 +48,6 @@ print("logg = ", best_g/100, abs(best_g-other_T[1])/100)
 print("rv=",best_rv)
 # get and save best model
 lines_s,lines_m,model_n=new_err.fit_func_test((best_T,best_g,best_rv),spec_n,l_crop,models=model_c,mode=1)
-
 #repeat fit for secondary solution
 second_best=optimize.fmin(new_err.fit_func_test,(other_sol[0][0],other_sol[0][1],best_rv),args=(spec_n,l_crop,model_c,0),disp=0,xtol=1.,ftol=1.,full_output=1)
 other_T2=optimize.fmin(new_err.err_t,(other_sol[0][0],other_sol[0][1]),args=(best_rv,second_best[1],spec_n,l_crop,model_c),disp=0,xtol=1.,ftol=1.,full_output=0)

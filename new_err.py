@@ -47,3 +47,4 @@ def err_t(x,rv,valore,specn,lcrop,models='da2014'):
     tmp = tmp_func(x[0], x[1], rv, specn, lcrop, models)
     if tmp != 1: return abs(tmp[3]-(valore+1.)) #this is quantity that gets minimized 
     else: pass
+    
