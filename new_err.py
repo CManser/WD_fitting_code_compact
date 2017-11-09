@@ -5,13 +5,12 @@ from scipy import interpolate
 def tmp_func(_T, _g, _rv, _sn, _l, _m):
     c = 299792.458 # Speed of light in km/s 
     model_test=fitting_scripts.interpolating_model_DA(_T,(_g/100),mod_type=_m)
-    try: model_w, model_f = model_test[:,0], model_test[:,1]
+    try: norm_model, m_cont_flux=fitting_scripts.norm_spectra(model_test)
     except:
         print("Could not load the model")
         return 1
     else:
         #interpolate normalised model and spectra onto same wavelength scale
-        norm_model, m_cont_flux=fitting_scripts.norm_spectra(model_test)
         m_wave_n, m_flux_n, sn_w =norm_model[:,0]*(_rv+c)/c, norm_model[:,1], _sn[:,0]
         m_flux_n_i = interpolate.interp1d(m_wave_n,m_flux_n,kind='linear')(sn_w)
         #Initialise: normalised models and spectra in line region, and chi2
