@@ -9,8 +9,7 @@ def air_to_vac(wavin):
 
 
 def _band_limits(band):
-    """ give magnitude band e.g. "sdss_r"
-    return outer limits for use in models etc
+    """ give magnitude band e.g. "sdss_r" & return outer limits for use in models etc
     """
     mag = np.loadtxt(basedir+'/sm/'+band+'.dat')
     mag = mag[mag[:,1]>0.05]
@@ -18,8 +17,7 @@ def _band_limits(band):
 
 
 def models_normalised(quick=True, model='sdss', testing=False):
-    """
-    Import Normalised WD Models
+    """ Import Normalised WD Models
     No Arguements
     Optional:
         quick=True   : Use presaved model array. Check is up to date
@@ -27,12 +25,10 @@ def models_normalised(quick=True, model='sdss', testing=False):
         testing=False      : plot testing image
     Return [model_list,model_param,orig_model_wave,orig_model_flux,tck_model,r_model]
     """
-    #Use preloaded tables
-    if quick:
+    if quick: # Use preloaded tables
         model_list = ['sdss','new','old','fine++','db','da2014','pier','pier3D','pier3D_smooth','pier_rad','pier1D','pier_smooth','pier_rad_smooth','pier_rad_fullres','pier_fullres']
         if model not in model_list:
             raise wdfitError('Unknown "model" in models_normalised')
-        
         fn = '/wdfit.'+model+'.lst'
         d = '/WDModels_Koester.'+model+'_npy/'
         model_list = np.loadtxt(basedir+fn, usecols=[0], dtype=np.string_, comments='WDFitting/').astype(str)
