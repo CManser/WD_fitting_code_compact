@@ -59,7 +59,7 @@ lines_s_o,lines_m_o,spectra,model_n_o=new_err.fit_func_test((s_best_T,s_best_g,s
 fig=plt.figure(figsize=(8,5))
 ax1 = plt.subplot2grid((1,4), (0, 3))
 step = 0
-for i in xrange(1,6): # plots Halpha (i=0) to H6 (i=5)
+for i in range(1,6): # plots Halpha (i=0) to H6 (i=5)
   min_p   = lines_s[i][:,0][lines_s[i][:,1]==np.min(lines_s[i][:,1])][0]
   min_p_o = lines_s_o[i][:,0][lines_s_o[i][:,1]==np.min(lines_s_o[i][:,1])][0]
   ax1.plot(lines_s[i][:,0]-min_p,lines_s[i][:,1]+step,color='k')

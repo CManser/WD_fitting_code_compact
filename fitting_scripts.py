@@ -36,7 +36,7 @@ def models_normalised(quick=True, model='sdss', testing=False):
         
         fn = '/wdfit.'+model+'.lst'
         d = '/WDModels_Koester.'+model+'_npy/'
-        model_list = _np.loadtxt(basedir+fn, usecols=[0], dtype='string', comments='WDFitting/')
+        model_list = _np.loadtxt(basedir+fn, usecols=[0], dtype=np.string_, comments='WDFitting/').astype(str)
         model_param = _np.loadtxt(basedir+fn, usecols=[1,2], comments='WDFitting/')
         m_spec = _np.load(basedir+d+model_list[0])
         m_wave = m_spec[:,0]
@@ -59,7 +59,7 @@ def models_normalised(quick=True, model='sdss', testing=False):
         cont_f = _np.empty([len(m_flux), len(norm_range)])
         #for each zone
         
-        for j in xrange(len(norm_range)):
+        for j in range(len(norm_range)):
             if (norm_range[j,0] < m_wave.max()) & (norm_range[j,1] > m_wave.min()):
                 #crop
                 _f = m_flux.transpose()[(m_wave>=norm_range[j,0])&(m_wave<=norm_range[j,1])].transpose()
@@ -76,12 +76,12 @@ def models_normalised(quick=True, model='sdss', testing=False):
                 #print f
                 #find maxima and save
                 if norm_range_s[j]=='P':
-                    for k in xrange(len(f)):
+                    for k in range(len(f)):
                         cont_l[k,j] = l[f[k]==f[k].max()][0]
                         cont_f[k,j] = f[k].max()
                 #find mean and save
                 elif norm_range_s[j]=='M':
-                    for k in xrange(len(f)):
+                    for k in range(len(f)):
                         cont_l[k,j] = _np.mean(l)
                         cont_f[k,j] = _np.mean(f[k])
                 else:
@@ -93,7 +93,7 @@ def models_normalised(quick=True, model='sdss', testing=False):
             raise wdfitError('Normalised models cropped to too small a region')
         #
         cont_m_flux = _np.empty([len(m_flux),len(out_m_wave)])
-        for i in xrange(len(m_flux)):
+        for i in range(len(m_flux)):
             #not suitable for higher order fitting
             #tck = interpolate.splrep(m_wave_nr[i],m_flux_nr[i], t=[4100,4340,4900,6460], k=3)
             #print cont_f[i]
@@ -159,7 +159,7 @@ def norm_spectra(spectra, add_infinity=True, testing=False):
     else:
         s_nr = _np.zeros([len(norm_range),2])
     #for each zone
-    for j in xrange(len(norm_range)):
+    for j in range(len(norm_range)):
         if (norm_range[j,0] < spectra[:,0].max()) & (norm_range[j,1] > spectra[:,0].min()):
             #crop
             _s = spectra[(spectra[:,0]>=norm_range[j,0])&(spectra[:,0]<=norm_range[j,1])]
@@ -304,7 +304,7 @@ def models(quick=True, quiet=True, band='sdss_r', model='sdss'):
     else:
         orig_model_flux = _np.empty([len(model_list),len(orig_model_wave)])
         if not(model=='db'):
-            for i in xrange(len(model_list)):
+            for i in range(len(model_list)):
                 if not quiet:
                     print(i)
                 print(basedir+d+model_list[i])
@@ -313,7 +313,7 @@ def models(quick=True, quiet=True, band='sdss_r', model='sdss'):
             _np.save(basedir+'/orig_model_flux.'+model+'.npy',orig_model_flux)
         else:
             from jg import spectra as _s
-            for i in xrange(len(model_list)):
+            for i in range(len(model_list)):
                 if not quiet:
                     print(i)
                 #
@@ -571,7 +571,7 @@ def fit_line(spectra, model_in=None, quick=True, line_lmax=None, line_lmin=None,
     lines_s = []
     l_chi2 = []
     #for each line
-    for c in xrange(len(line_crop)):
+    for c in range(len(line_crop)):
         #crop model and spectra to line
         #only if line region is entirely covered by spectrum
         if (line_crop[c,1] < spectra[:,0].max()) & (line_crop[c,0] > spectra[:,0].min()):
@@ -594,7 +594,7 @@ def fit_line(spectra, model_in=None, quick=True, line_lmax=None, line_lmin=None,
     #print tmp_lines_m[c][lines_chi2==lines_chi2.min()]
     #store best model lines for output
     lines_m = []
-    for c in xrange(len(line_crop)):
+    for c in range(len(line_crop)):
         if (line_crop[c,1] < spectra[:,0].max()) & (line_crop[c,0] > spectra[:,0].min()):
             lines_m.append(tmp_lines_m[c][lines_chi2==lines_chi2.min()][0])
     #

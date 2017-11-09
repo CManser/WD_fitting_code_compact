@@ -24,7 +24,7 @@ def tmp_func(_T, _g, _rv, _spectra, _linee, _models):
         #Initialise: normalised models and spectra in line region, and chi2
         tmp_lines_m, lines_s, l_chi2 = [], [], []
         list=np.array([])
-        for c in xrange(len(line_crop)):
+        for c in range(len(line_crop)):
             #for each line, crop model and spectra to line only if line 
             #region is entirely covered by spectrum ...spectra_n[:,0] --> spectra_n_w
             if (line_crop[c,1] < _spectra[:,0].max()) & (line_crop[c,0] > _spectra[:,0].min()):
