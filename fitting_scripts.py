@@ -357,7 +357,7 @@ def interpolating_model_DA(temp,grav,mod_type='pier'):
     try:
         m11, m12 = np.load(dir_models+models[0]), np.load(dir_models+models[1])	
         m21, m22 = np.load(dir_models+models[2]), np.load(dir_models+models[3])
-        if t1!=t2: t = (temp-float(t1))/(float(t2)-float(t1))          
+        if t1!=t2: t = (temp-t1)/(t2-t1)          
         else: t=0	
         if g1!=g2: g = (grav-g1)/(g2-g1)
         else: g=0	
