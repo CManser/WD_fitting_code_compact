@@ -343,38 +343,31 @@ def interpolating_model_DA(temp,grav,mod_type='pier'):
                        55000.,60000.,65000.,70000.,75000.,80000.,90000.,100000.])
         logg=np.array([4.00,4.25,4.50,4.75,5.00,5.25,5.50,5.75,6.00,6.25,6.50,6.75,7.00,
                        7.25,7.50,7.75,8.00,8.25,8.50,8.75,9.00,9.25,9.50])
-    if (mod_type=='pier3D') & (temp<6000. or temp>90000. or grav<6.5 or grav>9.): return 0
-    elif (mod_type=='pier_rad' or mod_type=='pier_smooth') & (temp<6000. or temp>15000. or grav<7.0 or grav>9.): return 0
-    elif (mod_type=='da2014') & (temp<6000. or temp>100000. or grav<4.0 or grav>9.5): return 0
+    if (mod_type=='pier3D') & (temp<6000. or temp>90000. or grav<6.5 or grav>9.): return [],[]
+    elif (mod_type=='pier_rad' or mod_type=='pier_smooth') & (temp<6000. or temp>15000. or grav<7.0 or grav>9.): return [],[]
+    elif (mod_type=='da2014') & (temp<6000. or temp>100000. or grav<4.0 or grav>9.5): return [],[]
 	
     # INTERPOLATION #
     g1,g2 = np.max(logg[logg<=grav]),np.min(logg[logg>=grav])
-    if mod_type=='da2014': t1,t2 = str(int(max(teff[teff<=temp]))).zfill(6),str(int(min(teff[teff>=temp]))).zfill(6)
+    if mod_type=='da2014': t1,t2 = '%06d'%(int(max(teff[teff<=temp]))),'%06d'%(int(min(teff[teff>=temp])))
     else: t1,t2 = (int(max(teff[teff<=temp]))),(int(min(teff[teff>=temp])))
     models = []
-    for j in [t1,t2]:
-        for i in [g1,g2]:
-            if mod_type =='da2014': models.append('da'+str(j)+'_'+str(int(i*100))+'_2.7.npy')
-            else: models.append('WD_%.2f_'%(i)+str(j)+'.0.npy')
-    tmp = 0
-    if len(models[0])!=0: m11, tmp = np.load(dir_models+models[0]), 1
-    else: m11 = 0
-    if len(models[1])!=0: m12, tmp = np.load(dir_models+models[1]), 1
-    else: m12 = 0	
-    if len(models[2])!=0: m21, tmp = np.load(dir_models+models[2]), 1
-    else: m21 = 0	
-    if len(models[3])!=0: m22, tmp = np.load(dir_models+models[3]), 1
-    else: m22 = 0	
-    if t1!=t2: t = (temp-float(t1))/(float(t2)-float(t1))          
-    else: t=0
-    if np.isnan(t)==True: t=0	
-    if g1!=g2: g = (grav-g1)/(g2-g1)
-    else: g=0
-    if np.isnan(g)==True: g=0	
-    if tmp==1:
+    for i in [t1,t2]:
+        for j in [g1,g2]:
+            if mod_type =='da2014': models.append('da'+str(i)+'_'+str(int(j*100))+'_2.7.npy')
+            else: models.append('WD_%.2f_'%(j)+str(i)+'.0.npy')
+    try:
+        m11, m12 = np.load(dir_models+models[0]), np.load(dir_models+models[1])	
+        m21, m22 = np.load(dir_models+models[2]), np.load(dir_models+models[3])
+        if t1!=t2: t = (temp-float(t1))/(float(t2)-float(t1))          
+        else: t=0
+        if np.isnan(t)==True: t=0	
+        if g1!=g2: g = (grav-g1)/(g2-g1)
+        else: g=0
+        if np.isnan(g)==True: g=0	
         flux_i = (1-t)*(1-g)*m11[:,1]+t*(1-g)*m21[:,1]+t*g*m22[:,1]+(1-t)*g*m12[:,1]
         return np.dstack((m11[:,0], flux_i))[0]
-    else: return 0
+    except: return [],[]
 
 
 def corr3d(temperature,gravity,ml2a=0.8,testing=False):
