@@ -16,7 +16,7 @@ def _band_limits(band):
     return [mag[:,0].min(),mag[:,0].max()]
 
 
-def models_normalised(quick=True, model='da2014', testing=False):
+def norm_models(quick=True, model='da2014', testing=False):
     """ Import Normalised WD Models
     No Arguements
     Optional:
@@ -27,7 +27,7 @@ def models_normalised(quick=True, model='da2014', testing=False):
     """
     if quick: # Use preloaded tables
         model_list = ['da2014','pier','pier3D','pier3D_smooth','pier_rad','pier1D','pier_smooth','pier_rad_smooth','pier_rad_fullres','pier_fullres']
-        if model not in model_list: raise wdfitError('Unknown "model" in models_normalised')
+        if model not in model_list: raise wdfitError('Unknown "model" in norm_models')
         fn, d = '/wdfit.'+model+'.lst', '/WDModels_Koester.'+model+'_npy/'
         model_list  = np.loadtxt(basedir+fn, usecols=[0], dtype=np.string_, comments='WDFitting/').astype(str)
         model_param = np.loadtxt(basedir+fn, usecols=[1,2], comments='WDFitting/')
@@ -37,7 +37,7 @@ def models_normalised(quick=True, model='da2014', testing=False):
         norm_m_flux = np.load(basedir+'/norm_m_flux.'+model+'.npy')
         #
         if out_m_wave.shape[0] != norm_m_flux.shape[1]:
-            raise wdfitError('l and f arrays not correct shape in models_normalised')
+            raise wdfitError('l and f arrays not correct shape in norm_models')
     #Calculate
     else:
         from scipy import interpolate
@@ -429,26 +429,23 @@ def corr3d(temperature,gravity,ml2a=0.8,testing=False):
 
 def fit_line(_sn, l_crop, model_in=None, quick=True, model='sdss'):
     """
-    Use normalised models - can pass model_in from models_normalised() when processing many spectra
+    Use norm models - can pass model_in from norm_models() with many spectra
     Input _sn, l_crop <- Normalised spectrum & a cropped line list
     Optional:
-      model_in=None   : Given model array
-      quick=True      : Use presaved model array. Check is up to date
-      model='sdss': Which model grid to use: 'sdss' (DA, fine, noIR), 'new' (DA, course, IR, new), 'old' (DA, course, IR, old), 'interp' (DA, fine++, noIR)
-    #
-    Scale models to spectra
-    Calc and return chi2,
-    list of arrays of spectra at lines,
-    list of arrays of best models at lines
+        model_in=None   : Given model array
+        quick=True      : Use presaved model array. Check is up to date
+        model='da2014'  : 'da2014' or 'pier'
+    Calc and return chi2, list of arrays of spectra, and scaled models at lines
     """
     from scipy import interpolate
     #load normalised models
-    if model_in==None: m_wave_n,m_flux_n,model_list,model_param = models_normalised(quick=quick, model=model)
-    else: m_wave_n,m_flux_n,model_list,model_param = model_in
+    if model_in==None: 
+        m_wave,m_flux_n,m_list,m_param = norm_models(quick=quick, model=model)
+    else: m_wave,m_flux_n,m_list,m_param = model_in
     #linearly interpolate models onto spectral wavelength grid
     sn_w = _sn[:,0]
-    m_flux_n_i = interpolate.interp1d(m_wave_n,m_flux_n,kind='linear')(sn_w)
-    #Initialise: normalised models and spectra in line region, and chi2
+    m_flux_n_i = interpolate.interp1d(m_wave,m_flux_n,kind='linear')(sn_w)
+    #Normalised models, and spectra in line region, and calculate chi2
     tmp_lines_m, lines_s, l_chi2 = [],[],[]
     for i in range(len(l_crop)):
         l_c0,l_c1 = l_crop[i,0],l_crop[i,1]
@@ -457,14 +454,12 @@ def fit_line(_sn, l_crop, model_in=None, quick=True, model='sdss'):
         l_s = _sn[(sn_w>=l_c0)&(sn_w<=l_c1)]
         l_m = l_m*np.sum(l_s[:,1])/np.sum(l_m,axis=1).reshape([len(l_m),1])
         #calculate chi2
-        if np.isnan(np.sum(((l_s[:,1]-l_m)/l_s[:,2])**2,axis=1)[0])==False:
-            l_chi2.append( np.sum(((l_s[:,1]-l_m)/l_s[:,2])**2,axis=1) )
-            tmp_lines_m.append(l_m)
-            lines_s.append(l_s)
-    #mean chi2 over lines
-    lines_chi2 = np.sum(np.array(l_chi2),axis=0)
-    #store best model lines for output
-    lines_m = []
-    for i in range(len(l_crop)): lines_m.append(tmp_lines_m[i][lines_chi2==lines_chi2.min()][0])
-    best_TL = model_param[lines_chi2 == lines_chi2.min()][0]
-    return  lines_s,lines_m,best_TL,model_param,lines_chi2
+        l_chi2.append( np.sum(((l_s[:,1]-l_m)/l_s[:,2])**2,axis=1)   )
+        tmp_lines_m.append(l_m)
+        lines_s.append(l_s)
+    #mean chi2 over lines and stores best model lines for output
+    lines_chi2, lines_m = np.sum(np.array(l_chi2),axis=0), []
+    for i in range(len(l_crop)): 
+        lines_m.append(tmp_lines_m[i][lines_chi2==lines_chi2.min()][0])
+    best_TL = m_param[lines_chi2 == lines_chi2.min()][0]
+    return  lines_s,lines_m,best_TL,m_param,lines_chi2

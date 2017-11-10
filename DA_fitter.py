@@ -9,14 +9,15 @@ model_c='da2014'
 basedir='/Users/christophermanser/Storage/PhD_files/DESI/WDFitting'
 c = 299792.458 # Speed of light in km/s
 plot = True
-# Loads the input spectrum as sys.argv[1], first input
+# Loads the input spectrum as sys.argv[1], first input, and normalises
 spectra=np.loadtxt(sys.argv[1],usecols=(0,1,2),unpack=True).transpose()
 spectra = spectra[np.isnan(spectra[:,1])==False & (spectra[:,0]>3500)]
-#load lines to fit
+spec_n, cont_flux = fitting_scripts.norm_spectra(spectra)
+#load lines to fit and crops them
 line_crop = np.loadtxt(basedir+'/line_crop.dat')
 l_crop = line_crop[(line_crop[:,0]>spectra[:,0].min()) & (line_crop[:,1]<spectra[:,0].max())]
 #fit entire grid to find good starting point
-best=fitting_scripts.fit_line(spectra, l_crop,model_in=None,quick=True,model=model_c)
+best=fitting_scripts.fit_line(spec_n, l_crop,model_in=None,quick=True,model=model_c)
 first_T, first_g = best[2][0], best[2][1]
 all_chi, all_TL  = best[4], best[3]
 
@@ -30,8 +31,6 @@ elif first_T > 13000.:
     other_chi=all_chi[all_TL[:,0]<13000.]
     other_sol= other_TL[other_chi==np.min(other_chi)]
 
-# Calculate a cropped line list for new_err & normalises spectrum
-spec_n, cont_flux = fitting_scripts.norm_spectra(spectra)
 # Find best fitting model and then calculate error
 new_best=optimize.fmin(new_err.fit_func_test,(first_T,first_g,10.),args=(spec_n,l_crop,model_c,0),disp=0,xtol=1.,ftol=1.,full_output=1)
 other_T=optimize.fmin(new_err.err_t,(first_T,first_g),args=(new_best[0][2],new_best[1],spec_n,l_crop,model_c),disp=0,xtol=1.,ftol=1.,full_output=0)
