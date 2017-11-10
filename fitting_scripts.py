@@ -349,22 +349,19 @@ def interpolating_model_DA(temp,grav,mod_type='pier'):
 	
     # INTERPOLATION #
     g1,g2 = np.max(logg[logg<=grav]),np.min(logg[logg>=grav])
-    if mod_type=='da2014': t1,t2 = '%06d'%(int(max(teff[teff<=temp]))),'%06d'%(int(min(teff[teff>=temp])))
-    else: t1,t2 = (int(max(teff[teff<=temp]))),(int(min(teff[teff>=temp])))
+    t1,t2 = np.max(teff[teff<=temp]),np.min(teff[teff>=temp])
     models = []
     for i in [t1,t2]:
         for j in [g1,g2]:
-            if mod_type =='da2014': models.append('da'+str(i)+'_'+str(int(j*100))+'_2.7.npy')
+            if mod_type =='da2014': models.append('da%06d_%d_2.7.npy'%(i, j*100))
             else: models.append('WD_%.2f_%d.0.npy'%(j, i))
     try:
         m11, m12 = np.load(dir_models+models[0]), np.load(dir_models+models[1])	
         m21, m22 = np.load(dir_models+models[2]), np.load(dir_models+models[3])
         if t1!=t2: t = (temp-float(t1))/(float(t2)-float(t1))          
-        else: t=0
-        if np.isnan(t)==True: t=0	
+        else: t=0	
         if g1!=g2: g = (grav-g1)/(g2-g1)
-        else: g=0
-        if np.isnan(g)==True: g=0	
+        else: g=0	
         flux_i = (1-t)*(1-g)*m11[:,1]+t*(1-g)*m21[:,1]+t*g*m22[:,1]+(1-t)*g*m12[:,1]
         return np.dstack((m11[:,0], flux_i))[0]
     except: return [],[]
