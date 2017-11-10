@@ -427,43 +427,34 @@ def corr3d(temperature,gravity,ml2a=0.8,testing=False):
     elif ml2a==0.7: print("to be implemented")
 
 
-def fit_line(spectra, l_crop, model_in=None, quick=True, model='sdss'):
+def fit_line(_sn, l_crop, model_in=None, quick=True, model='sdss'):
     """
     Use normalised models - can pass model_in from models_normalised() when processing many spectra
-    Input Spectra, l_crop <- A cropped line list
+    Input _sn, l_crop <- Normalised spectrum & a cropped line list
     Optional:
       model_in=None   : Given model array
       quick=True      : Use presaved model array. Check is up to date
       model='sdss': Which model grid to use: 'sdss' (DA, fine, noIR), 'new' (DA, course, IR, new), 'old' (DA, course, IR, old), 'interp' (DA, fine++, noIR)
-      diagnostic=False: Return extra things
     #
-    Normalise spectra
     Scale models to spectra
-    Calc chi2
-    return chi2,
+    Calc and return chi2,
     list of arrays of spectra at lines,
     list of arrays of best models at lines
     """
     from scipy import interpolate
-    #Check if lines are inside spectra l
-    spec_w = spectra[:,0]
     #load normalised models
     if model_in==None: m_wave_n,m_flux_n,model_list,model_param = models_normalised(quick=quick, model=model)
     else: m_wave_n,m_flux_n,model_list,model_param = model_in
-    #normalise spectra
-    spectra_n, cont_flux = norm_spectra(spectra)
-    spectra_n = spectra_n[(spec_w >= m_wave_n.min()) & (spec_w <= m_wave_n.max())]
     #linearly interpolate models onto spectral wavelength grid
-    m_flux_n_i = interpolate.interp1d(m_wave_n,m_flux_n,kind='linear')(spec_w)
+    sn_w = _sn[:,0]
+    m_flux_n_i = interpolate.interp1d(m_wave_n,m_flux_n,kind='linear')(sn_w)
     #Initialise: normalised models and spectra in line region, and chi2
     tmp_lines_m, lines_s, l_chi2 = [], [],[]
     for i in range(len(l_crop)):
         l_c0,l_c1 = l_crop[i,0],l_crop[i,1]
-        #for each line crop model & spectra to line
-        #only if line region is entirely covered by spectrum
-        l_m = m_flux_n_i.transpose()[(spec_w>=l_c0)&(spec_w<=l_c1)].transpose()
-        l_s = spectra_n[(spec_w>=l_c0)&(spec_w<=l_c1)]
-        #renormalise models to spectra in line region
+        #for each line crop model & spectra to line & renormalise modesl to spectra
+        l_m = m_flux_n_i.transpose()[(sn_w>=l_c0)&(sn_w<=l_c1)].transpose()
+        l_s = _sn[(sn_w>=l_c0)&(sn_w<=l_c1)]
         l_m = l_m*np.sum(l_s[:,1])/np.sum(l_m,axis=1).reshape([len(l_m),1])
         #calculate chi2
         if np.isnan(np.sum(((l_s[:,1]-l_m)/l_s[:,2])**2,axis=1)[0])==False:
@@ -475,8 +466,5 @@ def fit_line(spectra, l_crop, model_in=None, quick=True, model='sdss'):
     #store best model lines for output
     lines_m = []
     for i in range(len(l_crop)): lines_m.append(tmp_lines_m[i][lines_chi2==lines_chi2.min()][0])
-    #chi2 contour
-    model_shape = [len(np.unique(model_param[:,0])),len(np.unique(model_param[:,1]))]
     best_TL = model_param[lines_chi2 == lines_chi2.min()][0]
-    other_TL = model_param[lines_chi2 == sorted(lines_chi2)[2]][0]
-    return  lines_s,lines_m,best_TL,model_param,lines_chi2,other_TL
+    return  lines_s,lines_m,best_TL,model_param,lines_chi2
