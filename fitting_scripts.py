@@ -303,66 +303,6 @@ def models(quick=True, quiet=True, band='sdss_r', model='da2014'):
     return [model_list,model_param,orig_model_wave,orig_model_flux,tck_model,r_model]
 
 
-# for speed the models need to be saved specifically as numpy arrays
-def interpolating_model_DA(temp,grav,mod_type='pier'):
-    """Interpolate model atmospheres given an input Teff and logg"""
-    # PARAMETERS # 
-    dir_models = basedir + '/WDModels_Koester.'+mod_type+'_npy/'
-    if mod_type=="pier" or mod_type=="pier_fullres":
-        teff=np.array([1500.,1750.,2000.,2250.,2500.,2750.,3000.,3250.,3500.,3750.,4000.,
-                       4250.,4500.,4750.,5000.,5250.,5500.,6000.,6500.,7000.,7500.,8000.,
-                       8500.,9000.,9500.,10000.,10500.,11000.,11500.,12000.,12500.,13000.,
-                       13500.,14000.,14500.,15000.,15500.,16000.,16500.,17000.,20000.,
-                       25000.,30000.,35000.,40000.,45000.,50000.,55000.,60000.,65000.,
-                       70000.,75000.,80000.,85000.,90000.])
-        logg=np.array([6.50,7.00,7.50,7.75,8.00,8.25,8.50,9.00,9.50])
-    elif mod_type=="pier3D_smooth":	
-        teff=np.array([1500.,1750.,2000.,2250.,2500.,2750.,3000.,3250.,3500.,3750.,4000.,
-                       4250.,4500.,4750.,5000.,5250.,5500.,6000.,6500.,7000.,7500.,8000.,
-                       8500.,9000.,9500.,10000.,10500.,11000.,11500.,12000.,12500.,13000.,
-                       13500.,14000.,14500.,15000.,15500.,16000.,16500.,17000.,20000.,
-                       25000.,30000.,35000.,40000.,45000.,50000.,55000.,60000.,65000.,
-                       70000.,75000.,80000.,85000.,90000.])
-        logg=np.array([7.00,7.50,8.00,8.50,9.00])
-    elif mod_type=="pier_smooth" or mod_type=="pier_rad" or mod_type=="pier_rad_smooth":	
-        teff=np.array([6000.,6500.,7000.,7500.,8000.,8500.,9000.,9500.,10000.,10500.,
-                       11000.,11500.,12000.,12500.,13000.,13500.,14000.,14500.,15000.])
-        logg=np.array([7.00,7.50,8.00,8.50,9.00])
-    elif mod_type=="da2014":
-        teff=np.array([6000.,6250.,6500.,6750.,7000.,7250.,7500.,7750.,8000.,8250.,8500.,
-                       8750.,9000.,9250.,9500.,9750.,10000.,10100.,10200.,10250.,10300.,
-                       10400.,10500.,10600.,10700.,10750.,10800.,10900.,11000.,11100.,
-                       11200.,11250.,11300.,11400.,11500.,11600.,11700.,11750.,11800.,
-                       11900.,12000.,12100.,12200.,12250.,12300.,12400.,12500.,12600.,
-                       12700.,12750.,12800.,12900.,13000.,13500.,14000.,14250.,14500.,
-                       14750.,15000.,15250.,15500.,15750.,16000.,16250.,16500.,16750.,
-                       17000.,17250.,17500.,17750.,18000.,18250.,18500.,18750.,19000.,
-                       19250.,19500.,19750.,20000.,21000.,22000.,23000.,24000.,25000.,
-                       26000.,27000.,28000.,29000.,30000.,35000.,40000.,45000.,50000.,
-                       55000.,60000.,65000.,70000.,75000.,80000.,90000.,100000.])
-        logg=np.array([4.00,4.25,4.50,4.75,5.00,5.25,5.50,5.75,6.00,6.25,6.50,6.75,7.00,
-                       7.25,7.50,7.75,8.00,8.25,8.50,8.75,9.00,9.25,9.50])
-    if (mod_type=='pier3D') & (temp<6000. or temp>90000. or grav<6.5 or grav>9.): return [],[]
-    elif (mod_type=='pier_rad' or mod_type=='pier_smooth') & (temp<6000. or temp>15000. or grav<7.0 or grav>9.): return [],[]
-    elif (mod_type=='da2014') & (temp<6000. or temp>100000. or grav<4.0 or grav>9.5): return [],[]
-	
-    # INTERPOLATION #
-    g1,g2 = np.max(logg[logg<=grav]),np.min(logg[logg>=grav])
-    if g1!=g2: g = (grav-g1)/(g2-g1)
-    else: g=0
-    t1,t2 = np.max(teff[teff<=temp]),np.min(teff[teff>=temp])
-    if t1!=t2: t = (temp-t1)/(t2-t1)          
-    else: t=0	
-    if mod_type =='da2014': models = ['da%06d_%d_2.7.npy'%(i, j*100) for i in [t1,t2] for j in [g1,g2]]
-    else: models = ['WD_%.2f_%d.0.npy'%(j, i) for i in [t1,t2] for j in [g1,g2]]
-    try:
-        m11, m12 = np.load(dir_models+models[0]), np.load(dir_models+models[1])	
-        m21, m22 = np.load(dir_models+models[2]), np.load(dir_models+models[3])	
-        flux_i = (1-t)*(1-g)*m11[:,1]+t*(1-g)*m21[:,1]+t*g*m22[:,1]+(1-t)*g*m12[:,1]
-        return np.dstack((m11[:,0], flux_i))[0]
-    except: return [],[]
-
-
 def corr3d(temperature,gravity,ml2a=0.8,testing=False):
     """ Determines the 3D correction (Tremblay et al. 2013, 559, A104)
 	  from their atmospheric parameters
@@ -427,6 +367,72 @@ def corr3d(temperature,gravity,ml2a=0.8,testing=False):
     elif ml2a==0.7: print("to be implemented")
 
 
+# for speed the models need to be saved specifically as numpy arrays
+def interpolating_model_DA(temp,grav,m_type='da2014'):
+    """Interpolate model atmospheres given an input Teff and logg"""
+    # PARAMETERS # 
+    dir_models = basedir + '/WDModels_Koester.'+m_type+'_npy/'
+    if m_type=="pier" or m_type=="pier_fullres":
+        teff=np.array([1500.,1750.,2000.,2250.,2500.,2750.,3000.,3250.,3500.,
+                       3750.,4000.,4250.,4500.,4750.,5000.,5250.,5500.,6000.,
+                       6500.,7000.,7500.,8000.,8500.,9000.,9500.,10000.,10500.,
+                       11000.,11500.,12000.,12500.,13000.,13500.,14000.,14500.,
+                       15000.,15500.,16000.,16500.,17000.,20000.,25000.,30000.,
+                       35000.,40000.,45000.,50000.,55000.,60000.,65000.,70000.,
+                       75000.,80000.,85000.,90000.])
+        logg=np.array([6.50,7.00,7.50,7.75,8.00,8.25,8.50,9.00,9.50])
+    elif m_type=="pier3D_smooth":	
+        teff=np.array([1500.,1750.,2000.,2250.,2500.,2750.,3000.,3250.,3500.,
+                       3750.,4000.,4250.,4500.,4750.,5000.,5250.,5500.,6000.,
+                       6500.,7000.,7500.,8000.,8500.,9000.,9500.,10000.,10500.,
+                       11000.,11500.,12000.,12500.,13000.,13500.,14000.,14500.,
+                       15000.,15500.,16000.,16500.,17000.,20000.,25000.,30000.,
+                       35000.,40000.,45000.,50000.,55000.,60000.,65000.,70000.,
+                       75000.,80000.,85000.,90000.])
+        logg=np.array([7.00,7.50,8.00,8.50,9.00])
+    elif m_type=="pier_smooth" or m_type=="pier_rad" or m_type=="pier_rad_smooth":	
+        teff=np.array([6000.,6500.,7000.,7500.,8000.,8500.,9000.,9500.,10000.,
+                       10500.,11000.,11500.,12000.,12500.,13000.,13500.,14000.,
+                       14500.,15000.])
+        logg=np.array([7.00,7.50,8.00,8.50,9.00])
+    elif m_type=="da2014":
+        teff=np.array([6000.,6250.,6500.,6750.,7000.,7250.,7500.,7750.,8000.,
+                       8250.,8500.,8750.,9000.,9250.,9500.,9750.,10000.,10100.,
+                       10200.,10250.,10300.,10400.,10500.,10600.,10700.,10750.,
+                       10800.,10900.,11000.,11100.,11200.,11250.,11300.,11400.,
+                       11500.,11600.,11700.,11750.,11800.,11900.,12000.,12100.,
+                       12200.,12250.,12300.,12400.,12500.,12600.,12700.,12750.,
+                       12800.,12900.,13000.,13500.,14000.,14250.,14500.,14750.,
+                       15000.,15250.,15500.,15750.,16000.,16250.,16500.,16750.,
+                       17000.,17250.,17500.,17750.,18000.,18250.,18500.,18750.,
+                       19000.,19250.,19500.,19750.,20000.,21000.,22000.,23000.,
+                       24000.,25000.,26000.,27000.,28000.,29000.,30000.,35000.,
+                       40000.,45000.,50000.,55000.,60000.,65000.,70000.,75000.,
+                       80000.,90000.,100000.])
+        logg=np.array([4.00,4.25,4.50,4.75,5.00,5.25,5.50,5.75,6.00,6.25,6.50,
+                       6.75,7.00,7.25,7.50,7.75,8.00,8.25,8.50,8.75,9.00,9.25,
+                       9.50])
+    if (m_type=='pier3D') & (temp<6000. or temp>90000. or grav<6.5 or grav>9.): return [],[]
+    elif (m_type=='pier_rad' or m_type=='pier_smooth') & (temp<6000. or temp>15000. or grav<7.0 or grav>9.): return [],[]
+    elif (m_type=='da2014') & (temp<6000. or temp>100000. or grav<4.0 or grav>9.5): return [],[]
+	
+    # INTERPOLATION #
+    g1,g2 = np.max(logg[logg<=grav]),np.min(logg[logg>=grav])
+    if g1!=g2: g = (grav-g1)/(g2-g1)
+    else: g=0
+    t1,t2 = np.max(teff[teff<=temp]),np.min(teff[teff>=temp])
+    if t1!=t2: t = (temp-t1)/(t2-t1)          
+    else: t=0	
+    if m_type =='da2014': models = ['da%06d_%d_2.7.npy'%(i, j*100) for i in [t1,t2] for j in [g1,g2]]
+    else: models = ['WD_%.2f_%d.0.npy'%(j, i) for i in [t1,t2] for j in [g1,g2]]
+    try:
+        m11, m12 = np.load(dir_models+models[0]), np.load(dir_models+models[1])	
+        m21, m22 = np.load(dir_models+models[2]), np.load(dir_models+models[3])	
+        flux_i = (1-t)*(1-g)*m11[:,1]+t*(1-g)*m21[:,1]+t*g*m22[:,1]+(1-t)*g*m12[:,1]
+        return np.dstack((m11[:,0], flux_i))[0]
+    except: return [],[]
+
+
 def fit_line(_sn, l_crop, model_in=None, quick=True, model='sdss'):
     """
     Use norm models - can pass model_in from norm_models() with many spectra
@@ -438,22 +444,19 @@ def fit_line(_sn, l_crop, model_in=None, quick=True, model='sdss'):
     Calc and return chi2, list of arrays of spectra, and scaled models at lines
     """
     from scipy import interpolate
-    #load normalised models
+    #load normalised models and linearly interp models onto spectrum wave
     if model_in==None: 
         m_wave,m_flux_n,m_list,m_param = norm_models(quick=quick, model=model)
     else: m_wave,m_flux_n,m_list,m_param = model_in
-    #linearly interpolate models onto spectral wavelength grid
     sn_w = _sn[:,0]
     m_flux_n_i = interpolate.interp1d(m_wave,m_flux_n,kind='linear')(sn_w)
-    #Normalised models, and spectra in line region, and calculate chi2
+    #Crops models and spectra in a line region, renorms models, calculates chi2
     tmp_lines_m, lines_s, l_chi2 = [],[],[]
     for i in range(len(l_crop)):
-        l_c0,l_c1 = l_crop[i,0],l_crop[i,1]
-        # Crop model and spec to line
+        l_c0,l_c1 = l_crop[i,0],l_crop[i,1] 
         l_m = m_flux_n_i.transpose()[(sn_w>=l_c0)&(sn_w<=l_c1)].transpose()
         l_s = _sn[(sn_w>=l_c0)&(sn_w<=l_c1)]
         l_m = l_m*np.sum(l_s[:,1])/np.sum(l_m,axis=1).reshape([len(l_m),1])
-        #calculate chi2
         l_chi2.append( np.sum(((l_s[:,1]-l_m)/l_s[:,2])**2,axis=1)   )
         tmp_lines_m.append(l_m)
         lines_s.append(l_s)
@@ -463,3 +466,50 @@ def fit_line(_sn, l_crop, model_in=None, quick=True, model='sdss'):
         lines_m.append(tmp_lines_m[i][lines_chi2==lines_chi2.min()][0])
     best_TL = m_param[lines_chi2 == lines_chi2.min()][0]
     return  lines_s,lines_m,best_TL,m_param,lines_chi2
+    
+
+def tmp_func(_T, _g, _rv, _sn, _l, _m):
+    from scipy import interpolate
+    c = 299792.458 # Speed of light in km/s 
+    model_test=interpolating_model_DA(_T,(_g/100),m_type=_m)
+    try: norm_model, m_cont_flux=norm_spectra(model_test)
+    except:
+        print("Could not load the model")
+        return 1
+    else:
+        #interpolate normalised model and spectra onto same wavelength scale
+        m_wave_n, m_flux_n, sn_w = norm_model[:,0]*(_rv+c)/c, norm_model[:,1], _sn[:,0]
+        m_flux_n_i = interpolate.interp1d(m_wave_n,m_flux_n,kind='linear')(sn_w)
+        #Initialise: normalised models and spectra in line region, and chi2
+        lines_m, lines_s, sum_l_chi2 = [],[],0
+        for i in range(len(_l)):
+            # Crop model and spec to line
+            l_c0,l_c1 = _l[i,0],_l[i,1]
+            l_m = m_flux_n_i.transpose()[(sn_w>=l_c0)&(sn_w<=l_c1)].transpose()
+            l_s = _sn[(sn_w>=l_c0)&(sn_w<=l_c1)]
+            #renormalise models to spectra in line region & calculate chi2+sum
+            l_m = l_m*np.sum(l_s[:,1])/np.sum(l_m)
+            sum_l_chi2 += np.sum(((l_s[:,1]-l_m)/l_s[:,2])**2)
+            lines_m.append(l_m)
+            lines_s.append(l_s)
+        return lines_s, lines_m, model_test, sum_l_chi2
+        
+        
+def fit_func_test(x,specn,lcrop,models='da2014',mode=0):
+    """Requires: x - initial guess of T, g, and rv
+       specn/lcrop - normalised spectrum / list of cropped lines to fit
+       mode=0 is for finding bestfit, mode=1 for fitting & retriving specific model """
+    tmp = tmp_func(x[0], x[1], x[2], specn, lcrop, models)
+    if tmp == 1: pass
+    elif mode==0: return tmp[3] #this is the quantity that gets minimized
+    elif mode==1: return tmp[0], tmp[1], tmp[2]
+
+
+def err_t(x,rv,valore,specn,lcrop,models='da2014'):
+    """Script finds errors by minimising function at chi+1 rather than chi
+       Requires: x; rv - initial guess of T, g; rv
+       valore - the chi value of the best fit
+       specn/lcrop - normalised spectrum / list of cropped lines to fit"""
+    tmp = tmp_func(x[0], x[1], rv, specn, lcrop, models)
+    if tmp != 1: return abs(tmp[3]-(valore+1.)) #this is quantity that gets minimized 
+    else: pass
