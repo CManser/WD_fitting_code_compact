@@ -355,7 +355,7 @@ def interpolating_model_DA(temp,grav,mod_type='pier'):
     for i in [t1,t2]:
         for j in [g1,g2]:
             if mod_type =='da2014': models.append('da'+str(i)+'_'+str(int(j*100))+'_2.7.npy')
-            else: models.append('WD_%.2f_'%(j)+str(i)+'.0.npy')
+            else: models.append('WD_%.2f_%d.0.npy'%(j, i))
     try:
         m11, m12 = np.load(dir_models+models[0]), np.load(dir_models+models[1])	
         m21, m22 = np.load(dir_models+models[2]), np.load(dir_models+models[3])
