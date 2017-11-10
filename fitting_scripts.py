@@ -111,7 +111,7 @@ def norm_models(quick=True, model='da2014', testing=False):
                 plt.show()
                 return
             for i in np.where(model_param[:,1]==8.0)[0][::8]: p()
-    return [out_m_wave,norm_m_flux,model_list,model_param]
+    return [out_m_wave,norm_m_flux,model_param]
 
 
 def norm_spectra(spectra, add_infinity=True, testing=False):
@@ -445,9 +445,8 @@ def fit_line(_sn, l_crop, model_in=None, quick=True, model='sdss'):
     """
     from scipy import interpolate
     #load normalised models and linearly interp models onto spectrum wave
-    if model_in==None: 
-        m_wave,m_flux_n,m_list,m_param = norm_models(quick=quick, model=model)
-    else: m_wave,m_flux_n,m_list,m_param = model_in
+    if model_in==None: m_wave,m_flux_n,m_param = norm_models(quick=quick, model=model)
+    else: m_wave,m_flux_n,m_param = model_in
     sn_w = _sn[:,0]
     m_flux_n_i = interpolate.interp1d(m_wave,m_flux_n,kind='linear')(sn_w)
     #Crops models and spectra in a line region, renorms models, calculates chi2
@@ -457,22 +456,22 @@ def fit_line(_sn, l_crop, model_in=None, quick=True, model='sdss'):
         l_m = m_flux_n_i.transpose()[(sn_w>=l_c0)&(sn_w<=l_c1)].transpose()
         l_s = _sn[(sn_w>=l_c0)&(sn_w<=l_c1)]
         l_m = l_m*np.sum(l_s[:,1])/np.sum(l_m,axis=1).reshape([len(l_m),1])
-        l_chi2.append( np.sum(((l_s[:,1]-l_m)/l_s[:,2])**2,axis=1)   )
+        l_chi2.append( np.sum(((l_s[:,1]-l_m)/l_s[:,2])**2,axis=1) )
         tmp_lines_m.append(l_m)
         lines_s.append(l_s)
     #mean chi2 over lines and stores best model lines for output
     lines_chi2, lines_m = np.sum(np.array(l_chi2),axis=0), []
-    for i in range(len(l_crop)): 
-        lines_m.append(tmp_lines_m[i][lines_chi2==lines_chi2.min()][0])
-    best_TL = m_param[lines_chi2 == lines_chi2.min()][0]
+    is_best = lines_chi2==lines_chi2.min()
+    for i in range(len(l_crop)): lines_m.append(tmp_lines_m[i][is_best][0])
+    best_TL = m_param[is_best][0]
     return  lines_s,lines_m,best_TL,m_param,lines_chi2
     
 
 def tmp_func(_T, _g, _rv, _sn, _l, _m):
     from scipy import interpolate
     c = 299792.458 # Speed of light in km/s 
-    model_test=interpolating_model_DA(_T,(_g/100),m_type=_m)
-    try: norm_model, m_cont_flux=norm_spectra(model_test)
+    model=interpolating_model_DA(_T,(_g/100),m_type=_m)
+    try: norm_model, m_cont_flux=norm_spectra(model)
     except:
         print("Could not load the model")
         return 1
@@ -492,10 +491,10 @@ def tmp_func(_T, _g, _rv, _sn, _l, _m):
             sum_l_chi2 += np.sum(((l_s[:,1]-l_m)/l_s[:,2])**2)
             lines_m.append(l_m)
             lines_s.append(l_s)
-        return lines_s, lines_m, model_test, sum_l_chi2
+        return lines_s, lines_m, model, sum_l_chi2
         
         
-def fit_func_test(x,specn,lcrop,models='da2014',mode=0):
+def fit_func(x,specn,lcrop,models='da2014',mode=0):
     """Requires: x - initial guess of T, g, and rv
        specn/lcrop - normalised spectrum / list of cropped lines to fit
        mode=0 is for finding bestfit, mode=1 for fitting & retriving specific model """
@@ -505,7 +504,7 @@ def fit_func_test(x,specn,lcrop,models='da2014',mode=0):
     elif mode==1: return tmp[0], tmp[1], tmp[2]
 
 
-def err_t(x,rv,valore,specn,lcrop,models='da2014'):
+def err_func(x,rv,valore,specn,lcrop,models='da2014'):
     """Script finds errors by minimising function at chi+1 rather than chi
        Requires: x; rv - initial guess of T, g; rv
        valore - the chi value of the best fit
