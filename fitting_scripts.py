@@ -303,7 +303,6 @@ def models(quick=True, quiet=True, band='sdss_r', model='da2014'):
     return [model_list,model_param,orig_model_wave,orig_model_flux,tck_model,r_model]
 
 
-# Models interpolation #
 # for speed the models need to be saved specifically as numpy arrays
 def interpolating_model_DA(temp,grav,mod_type='pier'):
     """Interpolate model atmospheres given an input Teff and logg"""
