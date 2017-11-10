@@ -16,7 +16,7 @@ def tmp_func(_T, _g, _rv, _sn, _l, _m):
         #Initialise: normalised models and spectra in line region, and chi2
         lines_m, lines_s, sum_l_chi2 = [],[],0
         for i in range(len(_l)):
-            #crop model and spec to line iff line region is entirely covered by spec
+            # Crop model and spec to line
             l_c0,l_c1 = _l[i,0],_l[i,1]
             l_m = m_flux_n_i.transpose()[(sn_w>=l_c0)&(sn_w<=l_c1)].transpose()
             l_s = _sn[(sn_w>=l_c0)&(sn_w<=l_c1)]

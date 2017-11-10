@@ -449,10 +449,10 @@ def fit_line(_sn, l_crop, model_in=None, quick=True, model='sdss'):
     sn_w = _sn[:,0]
     m_flux_n_i = interpolate.interp1d(m_wave_n,m_flux_n,kind='linear')(sn_w)
     #Initialise: normalised models and spectra in line region, and chi2
-    tmp_lines_m, lines_s, l_chi2 = [], [],[]
+    tmp_lines_m, lines_s, l_chi2 = [],[],[]
     for i in range(len(l_crop)):
         l_c0,l_c1 = l_crop[i,0],l_crop[i,1]
-        #for each line crop model & spectra to line & renormalise modesl to spectra
+        # Crop model and spec to line
         l_m = m_flux_n_i.transpose()[(sn_w>=l_c0)&(sn_w<=l_c1)].transpose()
         l_s = _sn[(sn_w>=l_c0)&(sn_w<=l_c1)]
         l_m = l_m*np.sum(l_s[:,1])/np.sum(l_m,axis=1).reshape([len(l_m),1])
