@@ -1,18 +1,5 @@
 import numpy as np
-import os
-import matplotlib.pyplot as plt
 basedir='/Users/christophermanser/Storage/PhD_files/DESI/WDFitting'
-
-def air_to_vac(wavin):
-    """Converts spectra from air wavelength to vacuum to compare to models"""
-    return wavin/(1.0 + 2.735182e-4 + 131.4182/wavin**2 + 2.76249e8/wavin**4)
-
-
-def _band_limits(band):
-    """ give mag band eg "sdss_r" & return outer limits for use in models etc"""
-    mag = np.loadtxt(basedir+'/sm/'+band+'.dat')
-    mag = mag[mag[:,1]>0.05]
-    return [mag[:,0].min(),mag[:,0].max()]
 
 
 def norm_models(quick=True, model='da2014', testing=False):
@@ -44,7 +31,7 @@ def norm_models(quick=True, model='da2014', testing=False):
         model_list,model_param,m_wave,m_flux,r_model = models(quick=quick, model=model)
         #Range over which DA is purely continuum
         norm_range = np.loadtxt(basedir+'/wide_norm_range.dat', usecols=[0,1])
-        norm_range_s = np.loadtxt(basedir+'/wide_norm_range.dat', usecols=[2], dtype='string')
+        n_range_s = np.loadtxt(basedir+'/wide_norm_range.dat', usecols=[2], dtype='string')
         #for each line, for each model, hold l and f of continuum
         cont_l = np.empty([len(m_flux), len(norm_range)])
         cont_f = np.empty([len(m_flux), len(norm_range)])
@@ -66,17 +53,17 @@ def norm_models(quick=True, model='da2014', testing=False):
                 f = tck(l)
                 #print f
                 #find maxima and save
-                if norm_range_s[j]=='P':
+                if n_range_s[j]=='P':
                     for k in range(len(f)):
                         cont_l[k,j] = l[f[k]==f[k].max()][0]
                         cont_f[k,j] = f[k].max()
                 #find mean and save
-                elif norm_range_s[j]=='M':
+                elif n_range_s[j]=='M':
                     for k in range(len(f)):
                         cont_l[k,j] = np.mean(l)
                         cont_f[k,j] = np.mean(f[k])
                 else:
-                    print('Unknown norm_range_s, ignoring')
+                    print('Unknown n_range_s, ignoring')
         #Continuum
         if (norm_range.min()>3400) & (norm_range.max()<13000):
             out_m_wave = m_wave[(m_wave>=3400)&(m_wave<=13000)]
@@ -111,74 +98,6 @@ def norm_models(quick=True, model='da2014', testing=False):
                 return
             for i in np.where(model_param[:,1]==8.0)[0][::8]: p()
     return [out_m_wave,norm_m_flux,model_param]
-
-
-def norm_spectra(spectra, add_infinity=True):
-    """
-    Normalised spectra by DA WD continuum regions
-    spectra of form array([wave,flux,error]) (err not necessary)
-    only works on SDSS spectra region
-    Optional:
-        EDIT wide_norm_range to change whether the region is fitted for a peak or mean'd
-        add_infinity=False : add a spline point at [infinity,0]
-    returns spectra, cont_flux
-    """
-    from scipy import interpolate
-    start_n=np.array([3770.,3796.,3835.,3895.,3995.,4130.,4490.,4620.,5070.,5200.,
-                      6000.,7000.,7550.,8400.])
-    end_n=np.array([3795.,3830.,3885.,3960.,4075.,4290.,4570.,4670.,5100.,5300.,
-                    6100.,7050.,7600.,8450.])
-    norm_range_s=np.array(['P','P','P','P','P','P','M','M','M','M','M','M','M','M'])
-    s_nr = np.zeros([len(start_n),3])
-    spectra[:,2][spectra[:,2]==0.] = spectra[:,2].max()
-    for j in range(len(start_n)):
-        if (start_n[j] < spectra[:,0].max()) & (end_n[j] > spectra[:,0].min()):
-            #crop
-            _s = spectra[(spectra[:,0]>=start_n[j])&(spectra[:,0]<=end_n[j])]
-            #Avoids gappy spectra
-            #More points than k
-            k=3
-            if len(_s)>k:
-                #interpolate onto 10* resolution
-                l = np.linspace(_s[:,0].min(),_s[:,0].max(),(len(_s)-1)*10+1)
-                tck = interpolate.splrep(_s[:,0],_s[:,1],w=1/_s[:,2], s=1000)
-                #median errors for max/mid point
-                s_nr[j,2] = np.median(_s[:,2]) / np.sqrt(len(_s[:,0]))
-                f = interpolate.splev(l,tck)
-                #find maxima and save
-                if norm_range_s[j]=='P': s_nr[j,0], s_nr[j,1] = l[f==f.max()][0], f.max()
-                #find mean and save
-                elif norm_range_s[j]=='M': s_nr[j,0:2] = np.mean(l), np.mean(f)
-                else: print('Unknown norm_range_s, ignoring')
-    s_nr = s_nr[ s_nr[:,0] != 0 ]
-    #
-    #t parameter chosen by eye. Position of knots. need more near blue end
-    #allow for short spectra though not as effective
-    if s_nr[:,0].max() < 4901: knots=None
-    elif s_nr[:,0].max() < 6460: knots = [3000,4900,4100,4340,4860,int(s_nr[:,0].max()-5)]
-    else: knots = [3885,4340,4900,6460]
-    if s_nr[:,0].min() > 3885:
-        print('Warning: knots used for spline normalisation not suitable for high order fitting')
-        knots=knots[1:]
-    if s_nr[:,0].min() > 4340:
-        print('Warning: knots used for spline normalisation probably bad')
-        knots=None
-    # add a point at infinity, 0 for spline to fit too. error = mean of other errors.
-    if add_infinity:
-        s_nr = np.vstack([ s_nr, np.array([90000.,0., np.mean(s_nr[:,2]) ]) ])
-        s_nr = np.vstack([ s_nr, np.array([100000.,0., np.mean(s_nr[:,2]) ]) ])
-    #weight by errors
-    try:
-        if len(spectra[0])>2: tck = interpolate.splrep(s_nr[:,0],s_nr[:,1], w=1/s_nr[:,2], t=knots, k=3)
-        else: tck = interpolate.splrep(s_nr[:,0],s_nr[:,1], t=knots, k=3)
-    except ValueError:
-        knots=None
-        if len(spectra[0])>2: tck = interpolate.splrep(s_nr[:,0],s_nr[:,1], w=1/s_nr[:,2], t=knots, k=3)
-        else: tck = interpolate.splrep(s_nr[:,0],s_nr[:,1], t=knots, k=3)
-    cont_flux = interpolate.splev(spectra[:,0],tck).reshape(spectra[:,0].size, 1)
-    spectra_ret = np.copy(spectra)
-    spectra_ret[:,1:] = spectra_ret[:,1:]/cont_flux
-    return spectra_ret, cont_flux
 
 
 def models(quick=True, quiet=True, band='sdss_r', model='da2014'):
@@ -293,6 +212,93 @@ def corr3d(temperature,gravity,ml2a=0.8,testing=False):
         return np.round(teff_3dcorr,0),np.round(logg_3dcorr,2)
     elif ml2a==0.8: print("to be implemented")
     elif ml2a==0.7: print("to be implemented")
+
+
+def air_to_vac(wavin):
+    """Converts spectra from air wavelength to vacuum to compare to models"""
+    return wavin/(1.0 + 2.735182e-4 + 131.4182/wavin**2 + 2.76249e8/wavin**4)
+
+
+def _band_limits(band):
+    """ give mag band eg "sdss_r" & return outer limits for use in models etc"""
+    mag = np.loadtxt(basedir+'/sm/'+band+'.dat')
+    mag = mag[mag[:,1]>0.05]
+    return [mag[:,0].min(),mag[:,0].max()]
+
+
+def norm_spectra(spectra, add_infinity=True):
+    """
+    Normalised spectra by DA WD continuum regions
+    spectra of form array([wave,flux,error]) (err not necessary so works on models)
+    only works on SDSS spectra region
+    Optional:
+        EDIT n_range_s to change whether region[j] is fitted for a peak or mean'd
+        add_infinity=False : add a spline point at [inf,0]
+    returns spectra, cont_flux
+    """
+    from scipy import interpolate
+    start_n=np.array([3770.,3796.,3835.,3895.,3995.,4130.,4490.,4620.,5070.,5200.,
+                      6000.,7000.,7550.,8400.])
+    end_n=np.array([3795.,3830.,3885.,3960.,4075.,4290.,4570.,4670.,5100.,5300.,
+                    6100.,7050.,7600.,8450.])
+    n_range_s=np.array(['P','P','P','P','P','P','M','M','M','M','M','M','M','M'])
+    if len(spectra[0])>2:
+        snr = np.zeros([len(start_n),3])
+        spectra[:,2][spectra[:,2]==0.] = spectra[:,2].max()
+    else: 
+        snr = np.zeros([len(start_n),2])
+    wav = spectra[:,0]
+    for j in range(len(start_n)):
+        if (start_n[j] < wav.max()) & (end_n[j] > wav.min()):
+            _s = spectra[(wav>=start_n[j])&(wav<=end_n[j])]
+            _w = _s[:,0]
+            #Avoids gappy spectra
+            k=3 # Check if there are more points than 3
+            if len(_s)>k:
+                #interpolate onto 10* resolution
+                l = np.linspace(_w.min(),_w.max(),(len(_s)-1)*10+1)
+                if len(spectra[0])>2:
+                    tck = interpolate.splrep(_w,_s[:,1],w=1/_s[:,2], s=1000)
+                    #median errors for max/mid point
+                    snr[j,2] = np.median(_s[:,2]) / np.sqrt(len(_w))
+                else: tck = interpolate.splrep(_w,_s[:,1],s=0.0)
+                f = interpolate.splev(l,tck)
+                #find maxima and save
+                if n_range_s[j]=='P': snr[j,0], snr[j,1] = l[f==f.max()][0], f.max()
+                #find mean and save
+                elif n_range_s[j]=='M': snr[j,0:2] = np.mean(l), np.mean(f)
+                else: print('Unknown n_range_s, ignoring')
+    snr = snr[ snr[:,0] != 0 ]
+    #t parameter chosen by eye. Position of knots.
+    if snr[:,0].max() < 6460: knots = [3000,4900,4100,4340,4860,int(snr[:,0].max()-5)]
+    else: knots = [3885,4340,4900,6460]
+    if snr[:,0].min() > 3885:
+        print('Warning: knots used for spline norm unsuitable for high order fitting')
+        knots=knots[1:]
+    if (snr[:,0].min() > 4340) or (snr[:,0].max() < 4901): 
+        knots=None # 'Warning: knots used probably bad'
+    if add_infinity: # Adds points at inf & 0 for spline to fit to err = mean(spec err)
+        if snr.shape[1] > 2:
+            mean_snr = np.mean(snr[:,2])
+            snr = np.vstack([ snr, np.array([90000. ,0., mean_snr ]) ])
+            snr = np.vstack([ snr, np.array([100000.,0., mean_snr ]) ])
+        else:
+            snr = np.vstack([ snr, np.array([90000.,0.]) ])
+            snr = np.vstack([ snr, np.array([100000.,0.]) ])
+    try: #weight by errors
+        if len(spectra[0])>2: 
+            tck = interpolate.splrep(snr[:,0],snr[:,1], w=1/snr[:,2], t=knots, k=3)
+        else: tck = interpolate.splrep(snr[:,0],snr[:,1], t=knots, k=3)
+    except ValueError:
+        knots=None
+        if len(spectra[0])>2: 
+            tck = interpolate.splrep(snr[:,0],snr[:,1], w=1/snr[:,2], t=knots, k=3)
+        else: tck = interpolate.splrep(snr[:,0],snr[:,1], t=knots, k=3)
+    cont_flux = interpolate.splev(wav,tck).reshape(wav.size, 1)
+    spectra_ret = np.copy(spectra)
+    spectra_ret[:,1:] = spectra_ret[:,1:]/cont_flux
+    return spectra_ret, cont_flux
+
 
 def interpolating_model_DA(temp,grav,m_type='da2014'):
     """Interpolate model atmospheres given an input Teff and logg
@@ -415,8 +421,7 @@ def tmp_func(_T, _g, _rv, _sn, _l, _m):
             #renormalise models to spectra in line region & calculate chi2+sum
             l_m = l_m*np.sum(l_s[:,1])/np.sum(l_m)
             sum_l_chi2 += np.sum(((l_s[:,1]-l_m)/l_s[:,2])**2)
-            lines_m.append(l_m)
-            lines_s.append(l_s)
+            lines_m.append(l_m), lines_s.append(l_s)
         return lines_s, lines_m, model, sum_l_chi2
         
         
