@@ -129,11 +129,8 @@ def norm_spectra(spectra, add_infinity=True):
     end_n=np.array([3795.,3830.,3885.,3960.,4075.,4290.,4570.,4670.,5100.,5300.,
                     6100.,7050.,7600.,8450.])
     norm_range_s=np.array(['P','P','P','P','P','P','M','M','M','M','M','M','M','M'])
-    if len(spectra[0])>2:
-        s_nr = np.zeros([len(start_n),3])
-        spectra[:,2][spectra[:,2]==0.] = spectra[:,2].max()
-    wave, flux, err
-    else: s_nr = np.zeros([len(start_n),2])
+    s_nr = np.zeros([len(start_n),3])
+    spectra[:,2][spectra[:,2]==0.] = spectra[:,2].max()
     for j in range(len(start_n)):
         if (start_n[j] < spectra[:,0].max()) & (end_n[j] > spectra[:,0].min()):
             #crop
@@ -144,11 +141,9 @@ def norm_spectra(spectra, add_infinity=True):
             if len(_s)>k:
                 #interpolate onto 10* resolution
                 l = np.linspace(_s[:,0].min(),_s[:,0].max(),(len(_s)-1)*10+1)
-                if len(spectra[0])>2:
-                    tck = interpolate.splrep(_s[:,0],_s[:,1],w=1/_s[:,2], s=1000)
-                    #median errors for max/mid point
-                    s_nr[j,2] = np.median(_s[:,2]) / np.sqrt(len(_s[:,0]))
-                else: tck = interpolate.splrep(_s[:,0],_s[:,1],s=0.0)
+                tck = interpolate.splrep(_s[:,0],_s[:,1],w=1/_s[:,2], s=1000)
+                #median errors for max/mid point
+                s_nr[j,2] = np.median(_s[:,2]) / np.sqrt(len(_s[:,0]))
                 f = interpolate.splev(l,tck)
                 #find maxima and save
                 if norm_range_s[j]=='P': s_nr[j,0], s_nr[j,1] = l[f==f.max()][0], f.max()
@@ -170,12 +165,8 @@ def norm_spectra(spectra, add_infinity=True):
         knots=None
     # add a point at infinity, 0 for spline to fit too. error = mean of other errors.
     if add_infinity:
-        if s_nr.shape[1] > 2:
-            s_nr = np.vstack([ s_nr, np.array([90000.,0., np.mean(s_nr[:,2]) ]) ])
-            s_nr = np.vstack([ s_nr, np.array([100000.,0., np.mean(s_nr[:,2]) ]) ])
-        else:
-            s_nr = np.vstack([ s_nr, np.array([90000.,0.]) ])
-            s_nr = np.vstack([ s_nr, np.array([100000.,0.]) ])
+        s_nr = np.vstack([ s_nr, np.array([90000.,0., np.mean(s_nr[:,2]) ]) ])
+        s_nr = np.vstack([ s_nr, np.array([100000.,0., np.mean(s_nr[:,2]) ]) ])
     #weight by errors
     try:
         if len(spectra[0])>2: tck = interpolate.splrep(s_nr[:,0],s_nr[:,1], w=1/s_nr[:,2], t=knots, k=3)
